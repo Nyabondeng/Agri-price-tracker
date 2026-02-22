@@ -1,0 +1,13 @@
+{
+  "name": "agri-price-tracker-ghana",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Initial Ghana-focused agri price tracker for coursework",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
