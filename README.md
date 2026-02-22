@@ -32,6 +32,7 @@ Ghana is facing rising food prices and instability in key agricultural commoditi
 - Nyabon Deng Adut - Backend Developer 
 - Christelle Usanase - Documentation Lead
 - Agns Adepa Berko - Backend Developer & DevOps Coordinator
+- Nduka-aku Oluchi Rejoice - Team Lead
 
 ## Initial Functional Feature Implemented
 This repository currently includes one working core feature:
