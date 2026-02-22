@@ -1,1 +1,80 @@
-# Agri-price-tracker
+# Agri Price Tracker Ghana
+
+Tagline: Real-time staple crop price visibility for Ghanaian farmers and traders.
+
+## Problem Statement
+Ghana is facing rising food prices and instability in key agricultural commodities, including cocoa. Smallholder farmers, market traders, and households often lack timely and comparable price information for staples. This project provides a simple way to view current prices for common crops to support better buying, selling, and planning decisions.
+
+## African Context
+- Country focus: Ghana
+- Current challenge: Rising food prices and cocoa-sector pressure
+- Opportunity: Active agri-tech ecosystem that can support practical digital tools
+
+## Target Users
+- Smallholder farmers
+- Market traders and aggregators
+- Local buyers and households
+
+## Core Features (Planned)
+- View latest prices for Maize, Rice, Cocoa, Tomatoes, and Peanuts
+- Track basic market and update timestamp per item
+- Expose price data through a simple API endpoint
+- Support future alerts for major price changes
+- Support future trend view for historical comparisons
+
+## Technology Stack
+- Runtime: Node.js
+- Backend: Native Node.js HTTP server (no external framework in this phase)
+- Data: Local JSON seed data
+- Version Control: Git and GitHub
+
+## Team Members and Roles
+- Nyabon Deng Adut - Backend Developer 
+- Christelle Usanase - Documentation Lead
+- Agns Adepa Berko - Backend Developer & DevOps Coordinator
+
+## Initial Functional Feature Implemented
+This repository currently includes one working core feature:
+- Display latest prices for 5 crops in a browser page
+- Provide machine-readable data at `/api/prices`
+
+## Local Setup and Run
+Prerequisite:
+- Node.js 18+
+
+Run steps:
+1. Clone the repository
+2. Open the project folder
+3. Start the server:
+
+```bash
+node src/server.js
+```
+
+4. Open in browser:
+- `http://localhost:3000/` for UI
+- `http://localhost:3000/api/prices` for JSON
+
+## Planned GitHub Project Board
+Kanban columns to use:
+- Backlog
+- In Progress
+- Done
+
+The prepared backlog items are in `docs/github-project-backlog.md` and can be copied into GitHub Projects.
+
+## Security and Repository Practices
+- Comprehensive `.gitignore` included
+- MIT `LICENSE` included
+- Branch protection checklist included in `docs/branch-protection-checklist.md`
+- Optional `CODEOWNERS` scaffold included in `.github/CODEOWNERS`
+
+## DevOps and Course Alignment
+- LO1: Uses version control and secure repository practices from project start
+- LO6: Defines collaboration roles, workflow, and review expectations
+- LO7: Keeps structure modular so it can evolve toward microservices in later phases
+
+## Next Step After This Phase
+- Install dependencies only when needed for next features
+- Add pull-request workflow and protected main branch settings in GitHub
+- Begin feature expansion with filters, history, and alerts
