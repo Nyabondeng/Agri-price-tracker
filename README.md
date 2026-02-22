@@ -1,6 +1,6 @@
 # Agri Price Tracker Ghana
 
-Tagline: Real-time staple crop price visibility for Ghanaian farmers and traders.
+Tagline: Helping Ghanaian farmers, traders, and households make better crop pricing decisions with simple, timely market data.
 
 ## Problem Statement
 Ghana is facing rising food prices and instability in key agricultural commodities, including cocoa. Smallholder farmers, market traders, and households often lack timely and comparable price information for staples. This project provides a simple way to view current prices for common crops to support better buying, selling, and planning decisions.
@@ -11,16 +11,16 @@ Ghana is facing rising food prices and instability in key agricultural commoditi
 - Opportunity: Active agri-tech ecosystem that can support practical digital tools
 
 ## Target Users
-- Smallholder farmers
-- Market traders and aggregators
-- Local buyers and households
+- Smallholder farmers in Ghana who need current market prices before selling produce
+- Market traders and aggregators who compare prices across markets for better purchasing decisions
+- Urban and peri-urban households who track staple food price changes for monthly budgeting
 
 ## Core Features (Planned)
-- View latest prices for Maize, Rice, Cocoa, Tomatoes, and Peanuts
-- Track basic market and update timestamp per item
-- Expose price data through a simple API endpoint
-- Support future alerts for major price changes
-- Support future trend view for historical comparisons
+- Display latest prices for 5 crops: Maize, Rice, Cocoa, Tomatoes, and Peanuts
+- Show market name, unit of measure, and last-updated timestamp for each crop price
+- Provide a JSON API endpoint (`/api/prices`) for machine-readable integration
+- Support future price-change alerts for significant increases or decreases
+- Support future historical trend comparison to track price movement over time
 
 ## Technology Stack
 - Runtime: Node.js
