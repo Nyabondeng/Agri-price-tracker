@@ -55,6 +55,32 @@ node src/server.js
 - `http://localhost:3000/` for UI
 - `http://localhost:3000/api/prices` for JSON
 
+## API Documentation
+
+### GET /api/prices
+Returns current prices for all tracked crops.
+
+**Response Format:**
+```json
+{
+  "country": "Ghana",
+  "generatedAt": "2026-02-22T10:30:00.000Z",
+  "items": [
+    {
+      "crop": "Maize",
+      "market": "Kumasi Central Market",
+      "unit": "100kg bag",
+      "priceGHS": 760,
+      "lastUpdated": "2026-02-22"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- 200: Success
+- 404: Route not found
+
 ## Planned GitHub Project Board
 Kanban columns to use:
 - Backlog
