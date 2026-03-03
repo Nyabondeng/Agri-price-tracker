@@ -31,3 +31,11 @@ Use conventional commit format:
 2. Update README if you add new features
 3. Request review from at least one team member
 4. Address review feedback promptly
+
+## Team Contacts
+For questions about the project, reach outto the team:
+
+- **Nduka-aku Oluchi Rejoice** (Team Lead) — project decisions
+- **Nyabon Deng Adut** (Backend Developer) — server and API questions  
+- **Agnes Adepa Berko** (Backend Developer & DevOps) — DevOps config questions
+- **Christelle Usanase** (Documentation Lead) — README and docs questions
