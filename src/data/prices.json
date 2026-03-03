@@ -1,0 +1,37 @@
+[
+  {
+    "crop": "Maize",
+    "market": "Kumasi Central Market",
+    "unit": "100kg bag",
+    "priceGHS": 760,
+    "lastUpdated": "2026-02-22"
+  },
+  {
+    "crop": "Rice",
+    "market": "Accra Agbogbloshie",
+    "unit": "50kg bag",
+    "priceGHS": 420,
+    "lastUpdated": "2026-02-22"
+  },
+  {
+    "crop": "Cocoa",
+    "market": "Western North Buying Center",
+    "unit": "64kg bag",
+    "priceGHS": 1950,
+    "lastUpdated": "2026-02-22"
+  },
+  {
+    "crop": "Tomatoes",
+    "market": "Tamale Aboabo Market",
+    "unit": "crate",
+    "priceGHS": 240,
+    "lastUpdated": "2026-02-22"
+  },
+  {
+    "crop": "Peanuts",
+    "market": "Techiman Market",
+    "unit": "100kg bag",
+    "priceGHS": 890,
+    "lastUpdated": "2026-02-22"
+  }
+]
