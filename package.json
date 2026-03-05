@@ -5,7 +5,12 @@
   "description": "Initial Ghana-focused agri price tracker for coursework",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "lint": "eslint .",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "eslint": "^9.21.0"
   },
   "engines": {
     "node": ">=18"
