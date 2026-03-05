@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const ciFailureMarker = 'intentional lint failure for CI evidence';
 
 const prices = require('../src/data/prices.json');
 
