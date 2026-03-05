@@ -49,12 +49,33 @@ Run steps:
 3. Start the server:
 
 ```bash
-node src/server.js
+npm start
 ```
 
 4. Open in browser:
 - `http://localhost:3000/` for UI
 - `http://localhost:3000/api/prices` for JSON
+
+## Run with Docker Compose
+Prerequisites:
+- Docker Desktop (or Docker Engine + Compose)
+
+Run steps:
+1. From the project root, build and run containers:
+
+```bash
+docker compose up --build
+```
+
+2. Open in browser:
+- `http://localhost:3000/` for UI
+- `http://localhost:3000/api/prices` for JSON
+
+3. Stop the containers:
+
+```bash
+docker compose down
+```
 
 ## API Documentation
 

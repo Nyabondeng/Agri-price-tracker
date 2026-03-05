@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Initial Ghana-focused agri price tracker for coursework",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18"
