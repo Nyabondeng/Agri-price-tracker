@@ -1,56 +1,64 @@
-# Node.js dependencies
-node_modules/
+# Git
+.git
+.gitignore
+.github
+.gitattributes
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
+# Dependencies - don't copy these (we'll reinstall in container)
+node_modules
+npm-debug.log
+package-lock.json
 
-# Coverage and test artifacts
-coverage/
-.nyc_output/
-
-# Build output
-dist/
-build/
-out/
-
-# Environment and secrets
+# Environment variables - keep secrets safe
 .env
-.env.*
-!.env.example
-config.local.yml
-*.pem
-*.key
-*.crt
+.env.local
+.env.production
+.env.example
 
-# IDE and editor settings
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+# IDE files - personal settings
+.vscode
+.idea
+*.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs
+npm-debug.log*
+
+# Tests - not needed in production
+test
+tests
+coverage
+*.test.js
+*.spec.js
+
+# Documentation
+README.md
+CONTRIBUTING.md
+LICENSE
+docs/
 
 # Temporary files
-tmp/
-temp/
+tmp
+temp
 *.tmp
 
-# Package manager caches
-.npm/
-.pnpm-store/
-.yarn/
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.pem
+terraform/ssh-key-*.pem
+terraform/crash.log
+terraform/override.tf
+terraform/override.tf.json
+terraform/terraform.tfstate.backup
