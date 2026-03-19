@@ -1,0 +1,76 @@
+# terraform/variables.tf
+variable "resource_group_location" {
+  description = "Azure region for resources"
+  type        = string
+  default     = "southafricanorth"
+}
+
+variable "project_name" {
+  description = "Project name for resource naming"
+  type        = string
+  default     = "agric-price-tracker"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "production"
+}
+
+variable "vnet_address_space" {
+  description = "Address space for Virtual Network"
+  type        = list(string)
+  default     = ["10.0.0.0/16"]
+}
+
+variable "public_subnet_prefix" {
+  description = "CIDR for public subnet (Bastion)"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "private_subnet_prefix" {
+  description = "CIDR for private subnet (App VM)"
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+variable "db_subnet_prefix" {
+  description = "CIDR for database subnet"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
+variable "vm_size" {
+  description = "VM size for application (B1s is free tier eligible)"
+  type        = string
+  default     = "Standard_B2s_v2"
+}
+
+variable "db_username" {
+  description = "Database administrator username"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "Database administrator password"
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_ssh_public_key" {
+  description = "SSH public key for VM access"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default = {
+    Environment = "production"
+    Project     = "agric-price-tracker"
+    ManagedBy   = "Terraform"
+  }
+}
