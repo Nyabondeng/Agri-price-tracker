@@ -27,6 +27,10 @@ Ghana is facing rising food prices and instability in key agricultural commoditi
 - Backend: Native Node.js HTTP server (no external framework in this phase)
 - Data: Local JSON seed data
 - Version Control: Git and GitHub
+- Infrastructure: Terraform (Azure)
+- Configuration Management: Ansible
+- CI/CD: GitHub Actions
+- Registry: Azure Container Registry (ACR)
 
 ## Team Members and Roles
 - Nyabon Deng Adut - Backend Developer 
@@ -77,6 +81,85 @@ docker compose up --build
 docker compose down
 ```
 
+## Live Deployment
+- Live Application URL: `<ADD_LIVE_URL_HERE>`
+- Final Presentation Video Link: `<ADD_VIDEO_LINK_HERE>`
+
+## Architecture Diagram
+The production deployment uses this flow:
+
+```text
+Developer Push/PR
+   |
+   v
+ GitHub Actions CI (lint, test, trivy, tfsec)
+   |
+   v
+ Merge to main
+   |
+   v
+ GitHub Actions CD
+  - Build image
+  - Push to ACR
+  - Run Ansible deploy
+   |
+   v
+ Azure VM (private subnet) running Docker container
+   |
+   v
+ App serves HTTP traffic
+
+Terraform provisions:
+- Virtual Network with public and private subnets
+- Azure Bastion host in public subnet
+- App VM in private subnet
+- Managed PostgreSQL
+- Network security groups
+- Azure Container Registry
+```
+
+## Infrastructure as Code (Terraform)
+Terraform code is in [terraform/main.tf](terraform/main.tf), [terraform/provider.tf](terraform/provider.tf), [terraform/variables.tf](terraform/variables.tf), and [terraform/outputs.tf](terraform/outputs.tf).
+
+Expected Terraform flow:
+
+```bash
+cd terraform
+terraform init
+terraform plan -var "db_username=<db_user>" -var "db_password=<db_password>"
+terraform apply -var "db_username=<db_user>" -var "db_password=<db_password>"
+```
+
+## Configuration Management (Ansible)
+Ansible playbook is in [ansible/deploy.yml](ansible/deploy.yml) with inventory in [ansible/inventory.ini](ansible/inventory.ini).
+
+The playbook:
+- Installs Docker and Docker Compose plugin
+- Logs in to ACR (when credentials are provided)
+- Pulls the latest application image
+- Recreates and runs the container on the VM
+
+Run manually:
+
+```bash
+ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+```
+
+## CI and CD Workflows
+- CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+  - Trigger: push to non-main branches and pull requests to main
+  - Steps: lint, tests, Docker build, Trivy image scan, tfsec IaC scan
+- CD workflow: [.github/workflows/cd.yml](.github/workflows/cd.yml)
+  - Trigger: push to main
+  - Steps: rerun quality/security checks, build image, push to ACR, deploy via Ansible
+
+Required GitHub repository secrets for CD:
+- `AZURE_CREDENTIALS`
+- `ACR_LOGIN_SERVER`
+- `ACR_USERNAME`
+- `ACR_PASSWORD`
+- `SSH_PRIVATE_KEY`
+
 ## API Documentation
 
 ### GET /api/prices
@@ -121,8 +204,3 @@ The prepared backlog items are in `docs/github-project-backlog.md` and can be co
 - LO1: Uses version control and secure repository practices from project start
 - LO6: Defines collaboration roles, workflow, and review expectations
 - LO7: Keeps structure modular so it can evolve toward microservices in later phases
-
-## Next Step After This Phase
-- Install dependencies only when needed for next features
-- Add pull-request workflow and protected main branch settings in GitHub
-- Begin feature expansion with filters, history, and alerts

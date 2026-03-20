@@ -33,3 +33,18 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t agri-price-tracker:${{ github.sha }} .
+
+      - name: Scan Docker image with Trivy (fail on CRITICAL)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: agri-price-tracker:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+
+      - name: Scan Terraform with tfsec (fail on CRITICAL)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          soft_fail: false
+          additional_args: --minimum-severity CRITICAL

@@ -1,0 +1,96 @@
+---
+- name: Configure and deploy Agri Price Tracker
+  hosts: app
+  become: true
+  vars:
+    app_dir: /opt/agri-price-tracker
+    app_container_name: agric-price-tracker-app
+    app_image: "{{ lookup('env', 'APP_IMAGE') | default('agri-price-tracker:latest', true) }}"
+    app_port: "{{ lookup('env', 'APP_PORT') | default('3000', true) }}"
+    acr_login_server: "{{ lookup('env', 'ACR_LOGIN_SERVER') | default('', true) }}"
+    acr_username: "{{ lookup('env', 'ACR_USERNAME') | default('', true) }}"
+    acr_password: "{{ lookup('env', 'ACR_PASSWORD') | default('', true) }}"
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required OS packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip
+        state: present
+
+    - name: Create Docker apt keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Add Docker apt repository key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add Docker apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker engine and compose plugin
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure Docker service is enabled and running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Ensure app directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Log in to Azure Container Registry when credentials are provided
+      community.docker.docker_login:
+        registry_url: "{{ acr_login_server }}"
+        username: "{{ acr_username }}"
+        password: "{{ acr_password }}"
+      when:
+        - acr_login_server | length > 0
+        - acr_username | length > 0
+        - acr_password | length > 0
+
+    - name: Pull application image
+      community.docker.docker_image_pull:
+        name: "{{ app_image }}"
+
+    - name: Ensure app container is running with latest image
+      community.docker.docker_container:
+        name: "{{ app_container_name }}"
+        image: "{{ app_image }}"
+        state: started
+        restart_policy: unless-stopped
+        recreate: true
+        pull: always
+        published_ports:
+          - "{{ app_port }}:3000"
+        env:
+          NODE_ENV: production
+          PORT: "3000"
