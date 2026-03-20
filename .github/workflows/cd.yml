@@ -8,6 +8,8 @@ on:
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -33,6 +35,8 @@ jobs:
 
       - name: Scan Docker image with Trivy (fail on CRITICAL)
         uses: aquasecurity/trivy-action@v0.35.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           image-ref: agri-price-tracker:${{ github.sha }}
           format: table
@@ -73,7 +77,19 @@ jobs:
       - name: Log in to Azure Container Registry
         shell: bash
         run: |
-          echo "$ACR_PASSWORD_CLEAN" | docker login "$ACR_REGISTRY" -u "$ACR_USERNAME_CLEAN" --password-stdin
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$ACR_REGISTRY/v2/" || true)
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "401" ]; then
+            echo "::error::Cannot reach ACR endpoint https://$ACR_REGISTRY/v2/ (HTTP $HTTP_CODE). Check ACR_LOGIN_SERVER secret and registry availability."
+            exit 1
+          fi
+
+          LOGIN_OUTPUT=$(echo "$ACR_PASSWORD_CLEAN" | docker login "$ACR_REGISTRY" -u "$ACR_USERNAME_CLEAN" --password-stdin 2>&1)
+          LOGIN_EXIT=$?
+          if [ $LOGIN_EXIT -ne 0 ]; then
+            echo "$LOGIN_OUTPUT"
+            echo "::error::ACR login failed. Ensure ACR admin user is enabled and rotate/update ACR_USERNAME and ACR_PASSWORD repository secrets."
+            exit 1
+          fi
 
       - name: Tag image for ACR
         run: docker tag agri-price-tracker:${{ github.sha }} ${{ env.ACR_REGISTRY }}/agri-price-tracker:${{ github.sha }}
