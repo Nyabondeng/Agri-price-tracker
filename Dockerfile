@@ -9,6 +9,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV API_VERSION=1
 
+# Update base image packages to fix vulnerabilities
+RUN apk update && apk upgrade
+
 # Copy package files to the working directory
 COPY package*.json ./
 
