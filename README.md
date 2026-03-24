@@ -154,10 +154,10 @@ ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
   - Steps: rerun quality/security checks, build image, push to ACR, deploy via Ansible
 
 Required GitHub repository secrets for CD:
-- `AZURE_CREDENTIALS`
 - `ACR_LOGIN_SERVER`
 - `ACR_USERNAME`
 - `ACR_PASSWORD`
+- `APP_PRIVATE_IP`
 - `SSH_PRIVATE_KEY`
 
 ## API Documentation
