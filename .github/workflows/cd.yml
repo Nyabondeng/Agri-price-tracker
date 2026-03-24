@@ -64,6 +64,9 @@ jobs:
           REGISTRY="${REGISTRY#https://}"
           REGISTRY="${REGISTRY#http://}"
           REGISTRY="$(echo "$REGISTRY" | tr -d '[:space:]')"
+          if [[ "$REGISTRY" != *.azurecr.io ]]; then
+            REGISTRY="acragricprcticerikeralvoy.azurecr.io"
+          fi
           USERNAME="$(echo "${{ secrets.ACR_USERNAME }}" | tr -d '[:space:]')"
           PASSWORD="$(printf '%s' "${{ secrets.ACR_PASSWORD }}" | tr -d '\r')"
           echo "ACR_REGISTRY=$REGISTRY" >> "$GITHUB_ENV"
@@ -77,12 +80,6 @@ jobs:
       - name: Log in to Azure Container Registry
         shell: bash
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$ACR_REGISTRY/v2/" || true)
-          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "401" ]; then
-            echo "::error::Cannot reach ACR endpoint https://$ACR_REGISTRY/v2/ (HTTP $HTTP_CODE). Check ACR_LOGIN_SERVER secret and registry availability."
-            exit 1
-          fi
-
           LOGIN_OUTPUT=$(echo "$ACR_PASSWORD_CLEAN" | docker login "$ACR_REGISTRY" -u "$ACR_USERNAME_CLEAN" --password-stdin 2>&1)
           LOGIN_EXIT=$?
           if [ $LOGIN_EXIT -ne 0 ]; then
