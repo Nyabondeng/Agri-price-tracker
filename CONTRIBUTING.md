@@ -33,7 +33,7 @@ Use conventional commit format:
 4. Address review feedback promptly
 
 ## Team Contacts
-For questions about the project, reach outto the team:
+For questions about the project, reach out to the team:
 
 - **Nduka-aku Oluchi Rejoice** (Team Lead) — project decisions
 - **Nyabon Deng Adut** (Backend Developer) — server and API questions  
