@@ -44,14 +44,14 @@ jobs:
 
       - name: Install Trivy
         run: |
-          echo "📦 Installing Trivy vulnerability scanner..."
+          echo " Installing Trivy vulnerability scanner..."
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
           trivy --version
 
       - name: Scan Docker image for vulnerabilities
         id: trivy_scan
         run: |
-          echo "🔍 Scanning Docker image for vulnerabilities..."
+          echo " Scanning Docker image for vulnerabilities..."
           trivy image \
             --severity CRITICAL,HIGH \
             --exit-code 1 \
@@ -79,7 +79,7 @@ jobs:
       - name: Check scan results
         if: steps.trivy_scan.outcome == 'failure'
         run: |
-          echo "❌ CRITICAL/HIGH vulnerabilities found in container image!"
+          echo " CRITICAL/HIGH vulnerabilities found in container image!"
           echo "Please review the trivy-report artifact for details."
           exit 1
 
@@ -102,7 +102,7 @@ jobs:
       - name: Install tfsec
         if: steps.check_terraform.outputs.terraform_exists == 'true'
         run: |
-          echo "📦 Installing tfsec IaC scanner..."
+          echo " Installing tfsec IaC scanner..."
           curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | sudo bash
           tfsec --version
 
@@ -110,7 +110,7 @@ jobs:
         if: steps.check_terraform.outputs.terraform_exists == 'true'
         id: tfsec_scan
         run: |
-          echo "🔍 Scanning Terraform files for security issues..."
+          echo " Scanning Terraform files for security issues..."
           tfsec terraform/ \
             --minimum-severity CRITICAL \
             --format default \
@@ -137,14 +137,14 @@ jobs:
       - name: Check tfsec results
         if: steps.check_terraform.outputs.terraform_exists == 'true' && steps.tfsec_scan.outcome == 'failure'
         run: |
-          echo "❌ CRITICAL security issues found in Terraform configuration!"
+          echo " CRITICAL security issues found in Terraform configuration!"
           echo "Please review the tfsec-report artifact for details."
           exit 1
 
       - name: No Terraform files found
         if: steps.check_terraform.outputs.terraform_exists == 'false'
         run: |
-          echo "⚠️ No Terraform files found - skipping IaC scan"
+          echo " No Terraform files found - skipping IaC scan"
 
   # Job 4: Software Composition Analysis (npm audit)
   dependency-scan:
@@ -164,14 +164,14 @@ jobs:
       - name: Run npm audit for vulnerable dependencies
         id: npm_audit
         run: |
-          echo "🔍 Scanning dependencies for vulnerabilities..."
+          echo " Scanning dependencies for vulnerabilities..."
           npm audit --audit-level=critical --production --json > npm-audit-report.json 2>&1 || true
           npm audit --audit-level=critical --production
         continue-on-error: true
 
       - name: Generate npm audit summary
         run: |
-          echo "## 📊 npm Audit Summary" > npm-audit-summary.txt
+          echo "## npm Audit Summary" > npm-audit-summary.txt
           echo "" >> npm-audit-summary.txt
           npm audit --audit-level=critical --production --json | jq '.metadata' 2>/dev/null >> npm-audit-summary.txt || echo "No critical vulnerabilities found" >> npm-audit-summary.txt
 
@@ -187,11 +187,11 @@ jobs:
       - name: Check npm audit results
         if: steps.npm_audit.outcome == 'failure'
         run: |
-          echo "❌ CRITICAL vulnerabilities found in dependencies!"
+          echo " CRITICAL vulnerabilities found in dependencies!"
           echo "Please review the npm-audit-report artifact for details."
           exit 1
 
-  # Job 5: Final Summary & Results
+    # Job 5: Final Summary & Results
   summary:
     runs-on: ubuntu-latest
     needs: [code-quality, container-scan, iac-scan, dependency-scan]
@@ -199,40 +199,43 @@ jobs:
     steps:
       - name: Generate comprehensive security summary
         run: |
-          echo "========================================"
-          echo "📊 DEVSECOPS SECURITY SCAN SUMMARY"
-          echo "========================================"
-          echo ""
-          echo "| Scan Type | Status |"
-          echo "|-----------|--------|"
-          echo "| Code Quality & Tests | ${{ needs.code-quality.result }} |"
-          echo "| Container Image (Trivy) | ${{ needs.container-scan.result }} |"
-          echo "| Infrastructure as Code (tfsec) | ${{ needs.iac-scan.result }} |"
-          echo "| Dependencies (npm audit) | ${{ needs.dependency-scan.result }} |"
-          echo ""
-          echo "========================================"
+          # Create the summary file
+          echo "========================================" > security-summary.txt
+          echo " DEVSECOPS SECURITY SCAN SUMMARY" >> security-summary.txt
+          echo "========================================" >> security-summary.txt
+          echo "" >> security-summary.txt
+          echo "| Scan Type | Status |" >> security-summary.txt
+          echo "|-----------|--------|" >> security-summary.txt
+          echo "| Code Quality & Tests | ${{ needs.code-quality.result }} |" >> security-summary.txt
+          echo "| Container Image (Trivy) | ${{ needs.container-scan.result }} |" >> security-summary.txt
+          echo "| Infrastructure as Code (tfsec) | ${{ needs.iac-scan.result }} |" >> security-summary.txt
+          echo "| Dependencies (npm audit) | ${{ needs.dependency-scan.result }} |" >> security-summary.txt
+          echo "" >> security-summary.txt
+          echo "========================================" >> security-summary.txt
+          
+          # Display the summary in logs
+          cat security-summary.txt
           
           # Check if any security scan failed
           if [[ "${{ needs.container-scan.result }}" == "failure" ]] || \
              [[ "${{ needs.iac-scan.result }}" == "failure" ]] || \
              [[ "${{ needs.dependency-scan.result }}" == "failure" ]]; then
-            echo ""
-            echo "❌ SECURITY SCANS FAILED!"
-            echo "Critical vulnerabilities detected. Please fix before merging."
-            echo ""
-            echo "📥 Download the security reports from the Artifacts section below."
+            echo "" >> security-summary.txt
+            echo " SECURITY SCANS FAILED!" >> security-summary.txt
+            echo "Critical vulnerabilities detected. Please fix before merging." >> security-summary.txt
+            echo " SECURITY SCANS FAILED!"
             exit 1
           elif [[ "${{ needs.code-quality.result }}" == "failure" ]]; then
-            echo ""
-            echo "❌ CODE QUALITY FAILED!"
-            echo "Please fix linting errors or failing tests."
+            echo "" >> security-summary.txt
+            echo " CODE QUALITY FAILED!" >> security-summary.txt
+            echo "Please fix linting errors or failing tests." >> security-summary.txt
+            echo " CODE QUALITY FAILED!"
             exit 1
           else
-            echo ""
-            echo "✅ ALL SECURITY SCANS PASSED!"
-            echo "No critical vulnerabilities detected."
-            echo ""
-            echo "📥 Security reports are available in the Artifacts section."
+            echo "" >> security-summary.txt
+            echo " ALL SECURITY SCANS PASSED!" >> security-summary.txt
+            echo "No critical vulnerabilities detected." >> security-summary.txt
+            echo " ALL SECURITY SCANS PASSED!"
           fi
 
       - name: Upload combined summary
