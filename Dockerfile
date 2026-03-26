@@ -1,5 +1,5 @@
 # Base image
-FROM node:23-alpine 
+FROM node:23-alpine
 
 # Create and set working directory
 WORKDIR /app
@@ -10,13 +10,13 @@ ENV PORT=3000
 ENV API_VERSION=1
 
 # Update base image packages to fix vulnerabilities
-RUN apk update && apk upgrade
+RUN apk upgrade --no-cache
 
 # Copy package files to the working directory
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy the rest of the application code
 COPY . .
