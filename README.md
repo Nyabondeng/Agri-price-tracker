@@ -45,7 +45,7 @@ This repository currently includes one working core feature:
 
 ## Local Setup and Run
 Prerequisite:
-- Node.js 18+
+- Node.js 22+ (matches Docker image and CI)
 
 Run steps:
 1. Clone the repository

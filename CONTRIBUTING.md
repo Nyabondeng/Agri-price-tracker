@@ -7,7 +7,7 @@ Thank you for your interest in contributing to this project.
 1. Clone the repository
 2. Create a new branch for your feature: `git checkout -b feature/your-feature-name`
 3. Make your changes
-4. Test locally by running `node src/server.js`
+4. Test locally by running `npm start` (or `node server.js`)
 5. Commit your changes with clear messages
 6. Push to your branch and create a Pull Request
 
