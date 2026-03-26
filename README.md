@@ -45,7 +45,7 @@ This repository currently includes one working core feature:
 
 ## Local Setup and Run
 Prerequisite:
-- Node.js 18+
+- Node.js 22+ (matches Docker image and CI)
 
 Run steps:
 1. Clone the repository
@@ -148,10 +148,10 @@ ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 ## CI and CD Workflows
 - CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
   - Trigger: push to non-main branches and pull requests to main
-  - Steps: lint, tests, Docker build, Trivy image scan, tfsec IaC scan
+  - Steps: lint, tests, Terraform (`fmt` check + `validate`), Docker build, Trivy image scan, tfsec IaC scan
 - CD workflow: [.github/workflows/cd.yml](.github/workflows/cd.yml)
   - Trigger: push to main
-  - Steps: rerun quality/security checks, build image, push to ACR, deploy via Ansible
+  - Steps: rerun quality/security checks (including Terraform `fmt` + `validate`), build image, Trivy + tfsec, push to ACR, deploy via Ansible (with `community.docker` collection)
 
 Required GitHub repository secrets for CD:
 - `ACR_LOGIN_SERVER`

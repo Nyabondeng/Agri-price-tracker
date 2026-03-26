@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: npm
 
       - name: Install dependencies
@@ -29,6 +33,20 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+          terraform_wrapper: false
+
+      - name: Terraform format check
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init and validate
+        working-directory: terraform
+        run: terraform init -backend=false && terraform validate
 
       - name: Build Docker image
         run: docker build -t agri-price-tracker:${{ github.sha }} .
@@ -50,12 +68,22 @@ jobs:
           soft_fail: false
           additional_args: --minimum-severity CRITICAL
 
-      - name: Validate ACR secrets
+      - name: Validate ACR and deploy secrets
         shell: bash
+        env:
+          ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+          APP_PRIVATE_IP: ${{ secrets.APP_PRIVATE_IP }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          test -n "${{ secrets.ACR_LOGIN_SERVER }}"
-          test -n "${{ secrets.ACR_USERNAME }}"
-          test -n "${{ secrets.ACR_PASSWORD }}"
+          set -euo pipefail
+          for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD APP_PRIVATE_IP SSH_PRIVATE_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Required secret $var is empty"
+              exit 1
+            fi
+          done
 
       - name: Normalize ACR variables
         shell: bash
@@ -99,10 +127,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Ansible and Docker Python SDK
+      - name: Install Ansible, Docker SDK, and collections
         run: |
           python -m pip install --upgrade pip
           pip install ansible docker
+          ansible-galaxy collection install community.docker
 
       - name: Prepare SSH key
         shell: bash
@@ -113,11 +142,19 @@ jobs:
 
       - name: Generate Ansible inventory from secrets
         shell: bash
+        env:
+          APP_IP: ${{ secrets.APP_PRIVATE_IP }}
+          BASTION_IP: ${{ secrets.BASTION_IP }}
         run: |
-          cat > ansible/inventory.ini <<EOF
-          [app]
-          app_vm ansible_host=${{ secrets.APP_PRIVATE_IP }} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa
-          EOF
+          set -euo pipefail
+          {
+            echo "[app]"
+            if [ -n "${BASTION_IP:-}" ]; then
+              echo "app_vm ansible_host=${APP_IP} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyJump=azureuser@${BASTION_IP}'"
+            else
+              echo "app_vm ansible_host=${APP_IP} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa"
+            fi
+          } > ansible/inventory.ini
 
       - name: Deploy with Ansible
         env:
