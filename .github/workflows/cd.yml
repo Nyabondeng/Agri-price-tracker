@@ -74,16 +74,23 @@ jobs:
           ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+          APP_HOST: ${{ secrets.APP_HOST }}
           APP_PRIVATE_IP: ${{ secrets.APP_PRIVATE_IP }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD APP_PRIVATE_IP SSH_PRIVATE_KEY; do
+          for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD SSH_PRIVATE_KEY; do
             if [ -z "${!var}" ]; then
               echo "::error::Required secret $var is empty"
               exit 1
             fi
           done
+          DEPLOY_HOST="${APP_HOST:-${APP_PRIVATE_IP:-}}"
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::error::Set APP_HOST (preferred) or APP_PRIVATE_IP in repository secrets"
+            exit 1
+          fi
+          echo "DEPLOY_HOST=$DEPLOY_HOST" >> "$GITHUB_ENV"
 
       - name: Normalize ACR variables
         shell: bash
@@ -142,19 +149,21 @@ jobs:
 
       - name: Generate Ansible inventory from secrets
         shell: bash
-        env:
-          APP_IP: ${{ secrets.APP_PRIVATE_IP }}
-          BASTION_IP: ${{ secrets.BASTION_IP }}
         run: |
           set -euo pipefail
           {
             echo "[app]"
-            if [ -n "${BASTION_IP:-}" ]; then
-              echo "app_vm ansible_host=${APP_IP} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyJump=azureuser@${BASTION_IP}'"
-            else
-              echo "app_vm ansible_host=${APP_IP} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa"
-            fi
+            echo "app_vm ansible_host=${DEPLOY_HOST} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
           } > ansible/inventory.ini
+
+      - name: Check SSH reachability to deploy host
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! timeout 8 bash -c "</dev/tcp/${DEPLOY_HOST}/22" 2>/dev/null; then
+            echo "::error::Cannot reach ${DEPLOY_HOST}:22 from GitHub-hosted runner. Use a publicly reachable APP_HOST or run CD on a self-hosted runner inside Azure VNet."
+            exit 1
+          fi
 
       - name: Deploy with Ansible
         env:
