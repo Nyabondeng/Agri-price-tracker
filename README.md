@@ -152,6 +152,7 @@ ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 - CD workflow: [.github/workflows/cd.yml](.github/workflows/cd.yml)
   - Trigger: push to main
   - Steps: rerun quality/security checks (including Terraform `fmt` + `validate`), build image, Trivy + tfsec, push to ACR, deploy via Ansible (with `community.docker` collection)
+- Workflow trigger note: GitHub Actions only uses workflow and Dockerfile changes after they are committed and pushed to GitHub. Re-run jobs from the Actions tab only for the same commit.
 
 Required GitHub repository secrets for CD:
 - `ACR_LOGIN_SERVER`
