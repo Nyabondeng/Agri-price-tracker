@@ -32,12 +32,13 @@ function buildHtml(items) {
       th, td { border: 1px solid #d1d5db; padding: 10px; text-align: left; }
       th { background: #f3f4f6; }
       code { background: #f3f4f6; padding: 2px 6px; }
+      .page-footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.9rem; color: #6b7280; }
     </style>
   </head>
   <body>
     <h1>Agri Price Tracker Ghana</h1>
     <p>Latest indicative prices for key crops in selected Ghana markets.</p>
-    <p>JSON endpoint: <code>/api/prices</code></p>
+    <p>Need data for another tool or map? Use the <code>/api/prices</code> JSON endpoint.</p>
     <table>
       <thead>
         <tr>
@@ -50,6 +51,9 @@ function buildHtml(items) {
       </thead>
       <tbody>${rows}</tbody>
     </table>
+    <footer class="page-footer">
+      <p>Figures are <strong>indicative only</strong> — confirm with traders at the market before you buy or sell.</p>
+    </footer>
   </body>
 </html>`;
 }
