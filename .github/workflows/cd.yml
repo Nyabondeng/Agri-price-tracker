@@ -93,6 +93,7 @@ jobs:
           echo "DEPLOY_HOST=$DEPLOY_HOST" >> "$GITHUB_ENV"
 
       - name: Normalize ACR variables
+        id: normalize_acr
         shell: bash
         run: |
           REGISTRY="${{ secrets.ACR_LOGIN_SERVER }}"
@@ -105,28 +106,28 @@ jobs:
           fi
           USERNAME="$(echo "${{ secrets.ACR_USERNAME }}" | tr -d '[:space:]')"
           PASSWORD="$(printf '%s' "${{ secrets.ACR_PASSWORD }}" | tr -d '\r')"
-          echo "ACR_REGISTRY=$REGISTRY" >> "$GITHUB_ENV"
-          echo "ACR_USERNAME_CLEAN=$USERNAME" >> "$GITHUB_ENV"
+          echo "acr_registry=$REGISTRY" >> "$GITHUB_OUTPUT"
+          echo "acr_username_clean=$USERNAME" >> "$GITHUB_OUTPUT"
           {
-            echo "ACR_PASSWORD_CLEAN<<EOF"
+            echo "acr_password_clean<<EOF"
             echo "$PASSWORD"
             echo "EOF"
-          } >> "$GITHUB_ENV"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Log in to Azure Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.ACR_REGISTRY }}
-          username: ${{ env.ACR_USERNAME_CLEAN }}
-          password: ${{ env.ACR_PASSWORD_CLEAN }}
+          registry: ${{ steps.normalize_acr.outputs.acr_registry }}
+          username: ${{ steps.normalize_acr.outputs.acr_username_clean }}
+          password: ${{ steps.normalize_acr.outputs.acr_password_clean }}
 
       - name: Tag image for ACR
-        run: docker tag agri-price-tracker:${{ github.sha }} ${{ env.ACR_REGISTRY }}/agri-price-tracker:${{ github.sha }}
+        run: docker tag agri-price-tracker:${{ github.sha }} ${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:${{ github.sha }}
 
       - name: Push image to ACR
         shell: bash
         run: |
-          IMAGE="${{ env.ACR_REGISTRY }}/agri-price-tracker:${{ github.sha }}"
+          IMAGE="${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:${{ github.sha }}"
           docker push "$IMAGE" || (sleep 10 && docker push "$IMAGE")
 
       - name: Set up Python for Ansible
@@ -157,21 +158,22 @@ jobs:
           } > ansible/inventory.ini
 
       - name: Check SSH reachability to deploy host
+        id: ssh_check
         shell: bash
         run: |
           set -euo pipefail
           if ! timeout 8 bash -c "</dev/tcp/${DEPLOY_HOST}/22" 2>/dev/null; then
             echo "::warning::Cannot reach ${DEPLOY_HOST}:22 from GitHub-hosted runner. Skipping Ansible deploy. Use a publicly reachable APP_HOST or run CD on a self-hosted runner inside Azure VNet."
-            echo "CAN_DEPLOY=false" >> "$GITHUB_ENV"
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
           else
-            echo "CAN_DEPLOY=true" >> "$GITHUB_ENV"
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy with Ansible
-        if: env.CAN_DEPLOY == 'true'
+        if: steps.ssh_check.outputs.can_deploy == 'true'
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
-          APP_IMAGE: ${{ env.ACR_REGISTRY }}/agri-price-tracker:${{ github.sha }}
+          APP_IMAGE: ${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:${{ github.sha }}
           ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
@@ -179,6 +181,6 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 
       - name: Mark deploy skipped when host unreachable
-        if: env.CAN_DEPLOY != 'true'
+        if: steps.ssh_check.outputs.can_deploy != 'true'
         run: |
           echo "Deployment skipped because SSH host is not reachable from GitHub-hosted runners."
