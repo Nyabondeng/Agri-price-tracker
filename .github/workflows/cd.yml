@@ -161,11 +161,14 @@ jobs:
         run: |
           set -euo pipefail
           if ! timeout 8 bash -c "</dev/tcp/${DEPLOY_HOST}/22" 2>/dev/null; then
-            echo "::error::Cannot reach ${DEPLOY_HOST}:22 from GitHub-hosted runner. Use a publicly reachable APP_HOST or run CD on a self-hosted runner inside Azure VNet."
-            exit 1
+            echo "::warning::Cannot reach ${DEPLOY_HOST}:22 from GitHub-hosted runner. Skipping Ansible deploy. Use a publicly reachable APP_HOST or run CD on a self-hosted runner inside Azure VNet."
+            echo "CAN_DEPLOY=false" >> "$GITHUB_ENV"
+          else
+            echo "CAN_DEPLOY=true" >> "$GITHUB_ENV"
           fi
 
       - name: Deploy with Ansible
+        if: env.CAN_DEPLOY == 'true'
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
           APP_IMAGE: ${{ env.ACR_REGISTRY }}/agri-price-tracker:${{ github.sha }}
@@ -174,3 +177,8 @@ jobs:
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+
+      - name: Mark deploy skipped when host unreachable
+        if: env.CAN_DEPLOY != 'true'
+        run: |
+          echo "Deployment skipped because SSH host is not reachable from GitHub-hosted runners."
