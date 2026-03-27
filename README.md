@@ -82,8 +82,30 @@ docker compose down
 ```
 
 ## Live Deployment
-- Live Application URL: `<ADD_LIVE_URL_HERE>`
-- Final Presentation Video Link: `<ADD_VIDEO_LINK_HERE>`
+- **Live Application URL**: `<ADD_LIVE_URL_HERE>` (from Azure App Service)
+- **Final Presentation Video Link**: `<ADD_VIDEO_LINK_HERE>`
+
+### Deployment Architecture (Two Independent Paths)
+
+The CD pipeline supports **two independent deployment options** that can coexist:
+
+#### Option 1: Azure App Service (Recommended - Public Website)
+- **What**: Fully managed containerized Node.js app in Azure
+- **Deployment**: Automatic on every push to main
+- **Access**: Public HTTPS URL (live website)
+- **Requirement**: Azure App Service secrets configured in GitHub
+- **Status**: Gracefully skips if secrets not configured (doesn't block the build)
+- **Advantage**: Simple, managed by Azure, auto-scaling, easy to demo
+
+#### Option 2: Private VM + Ansible (For Baseline Infrastructure)
+- **What**: Docker container deployed to private VM via Ansible
+- **Deployment**: Automatic on every push to main (if SSH reachable)
+- **Access**: Private IP (Bastion required for access, or make VM public)
+- **Requirement**: SSH credentials and reachable APP_HOST
+- **Status**: Gracefully skips if host unreachable (doesn't block the build)
+- **Advantage**: Full control, matches Terraform-provisioned infrastructure
+
+**Both paths can run simultaneously without interfering with each other.**
 
 ## Architecture Diagram
 The production deployment uses this flow:
@@ -151,15 +173,27 @@ ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
   - Steps: lint, tests, Terraform (`fmt` check + `validate`), Docker build, Trivy image scan, tfsec IaC scan
 - CD workflow: [.github/workflows/cd.yml](.github/workflows/cd.yml)
   - Trigger: push to main
-  - Steps: rerun quality/security checks (including Terraform `fmt` + `validate`), build image, Trivy + tfsec, push to ACR, deploy via Ansible (with `community.docker` collection)
+  - Steps: rerun quality/security checks (including Terraform `fmt` + `validate`), build image, Trivy + tfsec, push to ACR, deploy to App Service (if secrets configured), deploy via Ansible (if host reachable)
 - Workflow trigger note: GitHub Actions only uses workflow and Dockerfile changes after they are committed and pushed to GitHub. Re-run jobs from the Actions tab only for the same commit.
 
-Required GitHub repository secrets for CD:
-- `ACR_LOGIN_SERVER`
-- `ACR_USERNAME`
-- `ACR_PASSWORD`
-- `APP_PRIVATE_IP`
-- `SSH_PRIVATE_KEY`
+### Required GitHub Repository Secrets for CD
+
+**For ACR Push (Required for all CD runs):**
+- `ACR_LOGIN_SERVER` — Azure Container Registry login server (e.g., `acragricpricetracker123.azurecr.io`)
+- `ACR_USERNAME` — ACR username for authentication
+- `ACR_PASSWORD` — ACR password for authentication
+
+**For App Service Deployment (Optional - gracefully skips if not configured):**
+- `AZURE_SUBSCRIPTION_ID` — Your Azure subscription ID
+- `AZURE_CLIENT_ID` — Azure Service Principal client ID
+- `AZURE_CLIENT_SECRET` — Azure Service Principal client secret
+- `AZURE_TENANT_ID` — Your Azure tenant ID
+- `RESOURCE_GROUP_NAME` — Azure resource group name where App Service is deployed
+- `APP_SERVICE_NAME` — Name of the Azure App Service instance
+
+**For Private VM Ansible Deployment (Optional - gracefully skips if host unreachable):**
+- `APP_HOST` (preferred) or `APP_PRIVATE_IP` — VM IP address for SSH deployment
+- `SSH_PRIVATE_KEY` — Private SSH key for VM access (RSA 4096-bit PEM format)
 
 ## API Documentation
 
