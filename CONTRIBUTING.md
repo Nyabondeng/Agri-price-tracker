@@ -35,7 +35,7 @@ Use conventional commit format:
 ## Team Contacts
 For questions about the project, reach out to the team:
 
-- **Nduka-aku Oluchi Rejoice** (Team Lead) — project decisions
-- **Nyabon Deng Adut** (Backend Developer) — server and API questions  
-- **Agnes Adepa Berko** (Backend Developer & DevOps) — DevOps config questions
-- **Christelle Usanase** (Documentation Lead) — README and docs questions
+- **Nduka-aku Oluchi Rejoice** (Team Lead) - project decisions
+- **Nyabon Deng Adut** (Backend Developer) - server and API questions
+- **Agnes Adepa Berko** (Backend Developer & DevOps) - DevOps config questions
+- **Christelle Usanase** (Documentation Lead) - README and docs questions
