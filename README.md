@@ -83,6 +83,7 @@ docker compose down
 
 ## Live Deployment
 - **Local Development**: `npm start` → `http://localhost:3000`
+- **Final Presentation Video Link**: `https://drive.google.com/drive/folders/1Q6Yv-l3oGMr3-LvB2UMfNk7Naprjo1VW?usp=drive_link`
 - **Demo Repository**: All code and workflows are production-ready in this GitHub repository
 - **Deployment Ready**: Terraform, Ansible, and CI/CD pipelines are configured for Azure VM deployment when needed
 
