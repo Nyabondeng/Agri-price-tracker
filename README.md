@@ -180,6 +180,7 @@ ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 
 **For VM Deployment with Ansible (Optional - gracefully skips if host unreachable):**
 - `APP_HOST` (preferred) or `APP_PRIVATE_IP` — VM IP address for SSH deployment
+- `BASTION_HOST` — Public IP/DNS of Azure Bastion jump host (use with `APP_PRIVATE_IP` for private VM deploy)
 - `SSH_PRIVATE_KEY` — Private SSH key for VM access (RSA 4096-bit PEM format)
 
 ## API Documentation

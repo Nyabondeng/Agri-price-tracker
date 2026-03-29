@@ -76,6 +76,7 @@ jobs:
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
           APP_HOST: ${{ secrets.APP_HOST }}
           APP_PRIVATE_IP: ${{ secrets.APP_PRIVATE_IP }}
+          BASTION_HOST: ${{ secrets.BASTION_HOST }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
@@ -85,12 +86,20 @@ jobs:
               exit 1
             fi
           done
+          USE_BASTION="false"
           DEPLOY_HOST="${APP_HOST:-${APP_PRIVATE_IP:-}}"
-          if [ -z "$DEPLOY_HOST" ]; then
-            echo "::error::Set APP_HOST (preferred) or APP_PRIVATE_IP in repository secrets"
+          if [ -n "${BASTION_HOST:-}" ] && [ -n "${APP_PRIVATE_IP:-}" ]; then
+            # Prefer private VM deploy through Bastion when both are provided.
+            DEPLOY_HOST="$APP_PRIVATE_IP"
+            USE_BASTION="true"
+          fi
+          if [ -z "${DEPLOY_HOST:-}" ]; then
+            echo "::error::Set APP_HOST or APP_PRIVATE_IP (and optionally BASTION_HOST) in repository secrets"
             exit 1
           fi
           echo "DEPLOY_HOST=$DEPLOY_HOST" >> "$GITHUB_ENV"
+          echo "USE_BASTION=$USE_BASTION" >> "$GITHUB_ENV"
+          echo "BASTION_HOST=${BASTION_HOST:-}" >> "$GITHUB_ENV"
 
       - name: Normalize ACR variables
         id: normalize_acr
@@ -152,9 +161,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          if [ "${USE_BASTION:-false}" = "true" ]; then
+            SSH_ARGS="-o ProxyJump=azureuser@${BASTION_HOST} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+            echo "Using Bastion jump host ${BASTION_HOST} to reach private VM ${DEPLOY_HOST}."
+          fi
           {
             echo "[app]"
-            echo "app_vm ansible_host=${DEPLOY_HOST} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+            echo "app_vm ansible_host=${DEPLOY_HOST} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='${SSH_ARGS}'"
           } > ansible/inventory.ini
 
       - name: Check SSH reachability to deploy host
@@ -162,8 +176,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! timeout 8 bash -c "</dev/tcp/${DEPLOY_HOST}/22" 2>/dev/null; then
-            echo "::warning::Cannot reach ${DEPLOY_HOST}:22 from GitHub-hosted runner. Skipping Ansible deploy. Use a publicly reachable APP_HOST or run CD on a self-hosted runner inside Azure VNet."
+          CHECK_HOST="${DEPLOY_HOST}"
+          if [ "${USE_BASTION:-false}" = "true" ]; then
+            CHECK_HOST="${BASTION_HOST}"
+          fi
+          if ! timeout 8 bash -c "</dev/tcp/${CHECK_HOST}/22" 2>/dev/null; then
+            echo "::warning::Cannot reach ${CHECK_HOST}:22 from GitHub-hosted runner. Skipping Ansible deploy."
             echo "can_deploy=false" >> "$GITHUB_OUTPUT"
           else
             echo "can_deploy=true" >> "$GITHUB_OUTPUT"
