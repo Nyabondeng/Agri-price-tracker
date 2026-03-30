@@ -43,6 +43,11 @@ export default function AuthPage() {
     <section className="mx-auto max-w-xl card space-y-4">
       <h1 className="title-display text-3xl">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
       <p className="text-slate-600">Access role-based tools for farmers, traders, consumers, and admins.</p>
+      {!firebaseConfigured && (
+        <p className="rounded-xl bg-amber-100 px-3 py-2 text-xs text-amber-900">
+          Firebase keys are not configured yet. Email/password uses backend fallback mode.
+        </p>
+      )}
 
       <form className="space-y-3" onSubmit={handleSubmit}>
         {mode === "register" && (

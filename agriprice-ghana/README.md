@@ -80,6 +80,39 @@ docker compose up --build
 ## Environment Variables
 See `backend/.env.example` and `frontend/.env.example`.
 
+## Requirement Coverage
+- Frontend: React + Tailwind + Recharts implemented
+- Backend: Node.js + Express + MongoDB implemented
+- Authentication: Firebase token exchange for Google and (when configured) Email/Password, with JWT for API protection
+- Roles: Guest, Registered User, Admin flows implemented
+- Price dashboard, filters, history, compare, and charts implemented
+- Submission and admin approval workflow implemented
+- Alerts subscriptions and scheduled checks implemented
+- Donation flow with Paystack endpoint integration implemented
+- Deployment-ready files: Dockerfiles, compose, env templates, API docs implemented
+- Bonus: PWA shell, English/Twi toggle, simple trend prediction endpoint implemented
+
+## Final Setup Tasks (External)
+These are required outside code to make production features fully active:
+
+1. Configure Firebase project settings
+- Enable Email/Password and Google providers in Firebase Console
+- Add your deployed domain to authorized domains
+- Add real values in `frontend/.env`
+
+2. Configure Firebase Admin SDK for backend
+- Download service-account key from Firebase Console
+- Set `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` in `backend/.env`
+
+3. Configure public domain routing
+- Domain: `agri-price-tracker.duckdns.org`
+- Open firewall/router forwarding to your app host (or deploy to cloud VM/App Service)
+- Serve HTTPS in production (recommended)
+
+4. Configure optional integrations
+- Paystack: set `PAYSTACK_SECRET_KEY`
+- Alerts email: set SMTP variables in `backend/.env`
+
 ## API Documentation
 See `docs/API.md`.
 

@@ -16,6 +16,35 @@ function sanitizeUser(user) {
   };
 }
 
+async function upsertFirebaseUser(decoded, fallbackFullName = "") {
+  const email = decoded.email?.toLowerCase();
+  if (!email) {
+    const error = new Error("Firebase account email is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let user = await User.findOne({ email });
+  const resolvedName = fallbackFullName || decoded.name || email.split("@")[0];
+
+  if (!user) {
+    user = await User.create({
+      fullName: resolvedName,
+      email,
+      role: "user",
+      authProvider: decoded.firebase?.sign_in_provider === "google.com" ? "google" : "local",
+      firebaseUid: decoded.uid
+    });
+  }
+
+  if (!user.firebaseUid) {
+    user.firebaseUid = decoded.uid;
+    await user.save();
+  }
+
+  return user;
+}
+
 export const register = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
 
@@ -67,24 +96,18 @@ export const login = asyncHandler(async (req, res) => {
 export const googleLogin = asyncHandler(async (req, res) => {
   const { idToken } = req.body;
   const decoded = await verifyFirebaseToken(idToken);
+  const user = await upsertFirebaseUser(decoded);
 
-  const email = decoded.email?.toLowerCase();
-  if (!email) {
-    const error = new Error("Google account email is required");
-    error.statusCode = 400;
-    throw error;
-  }
+  res.status(200).json({
+    token: createToken(user._id.toString()),
+    user: sanitizeUser(user)
+  });
+});
 
-  let user = await User.findOne({ email });
-  if (!user) {
-    user = await User.create({
-      fullName: decoded.name || email.split("@")[0],
-      email,
-      role: "user",
-      authProvider: "google",
-      firebaseUid: decoded.uid
-    });
-  }
+export const firebaseAuthExchange = asyncHandler(async (req, res) => {
+  const { idToken, fullName = "" } = req.body;
+  const decoded = await verifyFirebaseToken(idToken);
+  const user = await upsertFirebaseUser(decoded, fullName);
 
   res.status(200).json({
     token: createToken(user._id.toString()),

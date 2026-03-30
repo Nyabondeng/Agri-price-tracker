@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 
 import { env } from "./config/env.js";
@@ -14,6 +15,13 @@ import { userRoutes } from "./routes/userRoutes.js";
 
 export const app = express();
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 app.use(
   cors({
     origin: env.clientUrl,
@@ -21,6 +29,7 @@ app.use(
   })
 );
 app.use(helmet());
+app.use(apiLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));

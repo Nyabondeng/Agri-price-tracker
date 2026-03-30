@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { signInWithPopup } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile
+} from "firebase/auth";
 
 import api, { setAuthToken } from "../services/api";
 import { auth, firebaseConfigured, googleProvider } from "../services/firebase";
@@ -43,14 +48,36 @@ export function AuthProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: nextToken, user: nextUser }));
   }
 
-  async function loginWithEmail(email, password) {
-    const { data } = await api.post("/auth/login", { email, password });
+  async function exchangeFirebaseToken(idToken, fullName = "") {
+    const { data } = await api.post("/auth/firebase", { idToken, fullName });
     persist(data.token, data.user);
   }
 
+  async function loginWithEmail(email, password) {
+    if (!firebaseConfigured || !auth) {
+      const { data } = await api.post("/auth/login", { email, password });
+      persist(data.token, data.user);
+      return;
+    }
+
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await result.user.getIdToken();
+    await exchangeFirebaseToken(idToken);
+  }
+
   async function registerWithEmail(fullName, email, password) {
-    const { data } = await api.post("/auth/register", { fullName, email, password });
-    persist(data.token, data.user);
+    if (!firebaseConfigured || !auth) {
+      const { data } = await api.post("/auth/register", { fullName, email, password });
+      persist(data.token, data.user);
+      return;
+    }
+
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (fullName) {
+      await updateProfile(result.user, { displayName: fullName });
+    }
+    const idToken = await result.user.getIdToken();
+    await exchangeFirebaseToken(idToken, fullName);
   }
 
   async function loginWithGoogle() {
@@ -60,8 +87,7 @@ export function AuthProvider({ children }) {
 
     const result = await signInWithPopup(auth, googleProvider);
     const idToken = await result.user.getIdToken();
-    const { data } = await api.post("/auth/google", { idToken });
-    persist(data.token, data.user);
+    await exchangeFirebaseToken(idToken);
   }
 
   async function refreshProfile() {

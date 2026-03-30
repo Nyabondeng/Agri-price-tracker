@@ -12,6 +12,8 @@ Base URL: `http://localhost:5000/api`
   - body: `{ email, password }`
 - `POST /auth/google`
   - body: `{ idToken }`
+- `POST /auth/firebase`
+  - body: `{ idToken, fullName? }`
 - `GET /auth/me` (Bearer token)
 
 ## Prices

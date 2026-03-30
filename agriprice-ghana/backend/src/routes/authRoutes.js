@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { body } from "express-validator";
 
-import { googleLogin, login, profile, register } from "../controllers/authController.js";
+import {
+  firebaseAuthExchange,
+  googleLogin,
+  login,
+  profile,
+  register
+} from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validationMiddleware.js";
 
@@ -29,6 +35,14 @@ authRoutes.post(
   body("idToken").notEmpty(),
   validateRequest,
   googleLogin
+);
+
+authRoutes.post(
+  "/firebase",
+  body("idToken").notEmpty(),
+  body("fullName").optional().isString(),
+  validateRequest,
+  firebaseAuthExchange
 );
 
 authRoutes.get("/me", protect, profile);
