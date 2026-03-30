@@ -83,7 +83,8 @@ docker compose down
 
 ## Live Deployment
 - **Local Development**: `npm start` → `http://localhost:3000`
-- **Live Application URL**: `http://4.221.88.111:5173/`
+- **Live Application URL (Domain)**: `http://agri-price-tracker.duckdns.org/`
+- **Live Application URL (Local)**: `http://localhost:3000/`
 - **Final Presentation Video Link**: `https://drive.google.com/drive/folders/1Q6Yv-l3oGMr3-LvB2UMfNk7Naprjo1VW?usp=drive_link`
 - **Final Presentation Document Link**: `https://docs.google.com/document/d/1V_8UBYUokSbaLtONoXNcODjacVvzCWaWwxlMnaMrQpk/edit?usp=sharing`
 - **Demo Repository**: All code and workflows are production-ready in this GitHub repository
