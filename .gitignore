@@ -6,6 +6,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
+lhr.err
+lhr.out
+lt.err
+lt.out
+ssh-err.txt
+ssh-out.txt
+tunnel.err
+tunnel.log
 
 # Environment files
 .env
