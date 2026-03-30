@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -80,26 +80,37 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD SSH_PRIVATE_KEY; do
+          # ACR secrets are required for image push.
+          for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD; do
             if [ -z "${!var}" ]; then
               echo "::error::Required secret $var is empty"
               exit 1
             fi
           done
+
           USE_BASTION="false"
+          CAN_DEPLOY="true"
           DEPLOY_HOST="${APP_HOST:-${APP_PRIVATE_IP:-}}"
+
+          # SSH key is required only for VM deploy, not for image push.
+          if [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "::warning::SSH_PRIVATE_KEY is empty. VM deployment will be skipped after image push."
+            CAN_DEPLOY="false"
+          fi
+
           if [ -n "${BASTION_HOST:-}" ] && [ -n "${APP_PRIVATE_IP:-}" ]; then
             # Prefer private VM deploy through Bastion when both are provided.
             DEPLOY_HOST="$APP_PRIVATE_IP"
             USE_BASTION="true"
           fi
           if [ -z "${DEPLOY_HOST:-}" ]; then
-            echo "::error::Set APP_HOST or APP_PRIVATE_IP (and optionally BASTION_HOST) in repository secrets"
-            exit 1
+            echo "::warning::APP_HOST/APP_PRIVATE_IP not set. VM deployment will be skipped after image push."
+            CAN_DEPLOY="false"
           fi
           echo "DEPLOY_HOST=$DEPLOY_HOST" >> "$GITHUB_ENV"
           echo "USE_BASTION=$USE_BASTION" >> "$GITHUB_ENV"
           echo "BASTION_HOST=${BASTION_HOST:-}" >> "$GITHUB_ENV"
+          echo "CAN_DEPLOY=$CAN_DEPLOY" >> "$GITHUB_ENV"
 
       - name: Normalize ACR variables
         id: normalize_acr
@@ -176,6 +187,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "${CAN_DEPLOY:-false}" != "true" ]; then
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           CHECK_HOST="${DEPLOY_HOST}"
           if [ "${USE_BASTION:-false}" = "true" ]; then
             CHECK_HOST="${BASTION_HOST}"
