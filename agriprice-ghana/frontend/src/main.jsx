@@ -18,8 +18,24 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Ignore registration errors in local/dev scenarios.
+    if (import.meta.env.PROD) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Ignore registration errors in local/dev scenarios.
+      });
+      return;
+    }
+
+    // Avoid stale cached content while developing locally.
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => registration.unregister());
     });
+
+    if (window.caches) {
+      caches.keys().then((keys) => {
+        keys
+          .filter((key) => key.startsWith("agriprice-cache-"))
+          .forEach((key) => caches.delete(key));
+      });
+    }
   });
 }

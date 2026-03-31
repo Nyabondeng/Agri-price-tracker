@@ -17,9 +17,9 @@ export default function DashboardPage() {
 
   const copy = {
     en: {
-      title: "Real-time Commodity Tracker",
+      title: "Real-time Commodity Dashboard",
       subtitle:
-        "Track fresh prices for maize, rice, cassava, yam, tomatoes, and cocoa across major Ghanaian regions.",
+        "View fresh prices for maize, rice, cassava, yam, tomatoes, and cocoa across major Ghanaian regions.",
       crop: "Crop",
       region: "Region",
       allCrops: "All crops",

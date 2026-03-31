@@ -36,11 +36,11 @@ export default function AlertsPage() {
       <section className="card space-y-3">
         <h1 className="title-display text-3xl">Price Alerts</h1>
         <p className="text-slate-700">Subscribe to get notified when crop prices shift sharply in your region.</p>
-        <form onSubmit={create} className="grid gap-3 md:grid-cols-4">
+        <form onSubmit={create} className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <input className="rounded-xl border border-slate-200 px-3 py-2" value={form.crop} onChange={(e) => setForm((p) => ({ ...p, crop: e.target.value }))} placeholder="Crop" required />
           <input className="rounded-xl border border-slate-200 px-3 py-2" value={form.region} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))} placeholder="Region" required />
           <input className="rounded-xl border border-slate-200 px-3 py-2" value={form.thresholdPercent} type="number" min="1" max="99" onChange={(e) => setForm((p) => ({ ...p, thresholdPercent: e.target.value }))} placeholder="Threshold %" required />
-          <button className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white" type="submit">Add Alert</button>
+          <button className="col-span-2 rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white md:col-span-1" type="submit">Add Alert</button>
         </form>
         {message && <p className="text-sm text-slate-700">{message}</p>}
       </section>
