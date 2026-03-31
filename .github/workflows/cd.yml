@@ -83,10 +83,20 @@ jobs:
           CAN_PUSH="true"
           CAN_DEPLOY="true"
 
+          # Debug: Show which secrets are set (without exposing values)
+          echo "=== Secret Configuration Debug ==="
+          echo "ACR_LOGIN_SERVER is set: $([ -z "$ACR_LOGIN_SERVER" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "ACR_USERNAME is set: $([ -z "$ACR_USERNAME" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "ACR_PASSWORD is set: $([ -z "$ACR_PASSWORD" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "SSH_PRIVATE_KEY is set: $([ -z "$SSH_PRIVATE_KEY" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "APP_PRIVATE_IP is set: $([ -z "$APP_PRIVATE_IP" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "BASTION_HOST is set: $([ -z "$BASTION_HOST" ] && echo "NO ❌" || echo "YES ✓")"
+          echo "===================================="
+
           # ACR secrets are required for image push.
           for var in ACR_LOGIN_SERVER ACR_USERNAME ACR_PASSWORD; do
             if [ -z "${!var}" ]; then
-              echo "::warning::Required secret $var is empty. Image push and VM deployment will be skipped."
+              echo "::error::Required secret $var is EMPTY. Check GitHub Settings → Secrets and variables → Actions"
               CAN_PUSH="false"
               CAN_DEPLOY="false"
             fi
