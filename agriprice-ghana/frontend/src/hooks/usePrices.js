@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 
 export function usePrices(filters) {
+  const { crop, region } = filters;
+
   const [prices, setPrices] = useState([]);
   const [history, setHistory] = useState([]);
   const [prediction, setPrediction] = useState(null);
@@ -15,15 +17,15 @@ export function usePrices(filters) {
       setLoading(true);
       try {
         const [latest, trends] = await Promise.all([
-          api.get("/prices", { params: filters }),
-          api.get("/prices/history", { params: { crop: filters.crop, region: filters.region, days: 60 } })
+          api.get("/prices", { params: { crop, region } }),
+          api.get("/prices/history", { params: { crop, region, days: 60 } })
         ]);
 
         let predicted = null;
-        if (filters.crop && filters.region) {
+        if (crop && region) {
           try {
             const predictionResponse = await api.get("/prices/predict", {
-              params: { crop: filters.crop, region: filters.region }
+              params: { crop, region }
             });
             predicted = predictionResponse.data;
           } catch {
@@ -49,7 +51,7 @@ export function usePrices(filters) {
     return () => {
       mounted = false;
     };
-  }, [filters.crop, filters.region]);
+  }, [crop, region]);
 
   return { prices, history, prediction, loading };
 }

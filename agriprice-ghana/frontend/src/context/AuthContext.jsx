@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -100,21 +100,18 @@ export function AuthProvider({ children }) {
     persist("", null);
   }
 
-  const value = useMemo(
-    () => ({
-      token,
-      user,
-      loading,
-      isAuthenticated: Boolean(token),
-      isAdmin: user?.role === "admin",
-      loginWithEmail,
-      registerWithEmail,
-      loginWithGoogle,
-      refreshProfile,
-      logout
-    }),
-    [token, user, loading]
-  );
+  const value = {
+    token,
+    user,
+    loading,
+    isAuthenticated: Boolean(token),
+    isAdmin: user?.role === "admin",
+    loginWithEmail,
+    registerWithEmail,
+    loginWithGoogle,
+    refreshProfile,
+    logout
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
