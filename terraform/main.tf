@@ -221,12 +221,12 @@ resource "azurerm_linux_virtual_machine" "app" {
 
   # Cloud-init script to automatically deploy application
   custom_data = base64encode(templatefile("${path.module}/cloud-init.tpl", {
-    docker_image        = var.docker_image_url != "" ? var.docker_image_url : "agri-price-tracker:latest"
-    acr_login_server    = azurerm_container_registry.main.login_server
-    acr_username        = azurerm_container_registry.main.admin_username
-    acr_password        = azurerm_container_registry.main.admin_password
-    domain_name         = "agri-price-tracker.duckdns.org"
-    cert_email          = "admin@agri-price-tracker.duckdns.org"
+    docker_image     = var.docker_image_url != "" ? var.docker_image_url : "agri-price-tracker:latest"
+    acr_login_server = azurerm_container_registry.main.login_server
+    acr_username     = azurerm_container_registry.main.admin_username
+    acr_password     = azurerm_container_registry.main.admin_password
+    domain_name      = "agri-price-tracker.duckdns.org"
+    cert_email       = "admin@agri-price-tracker.duckdns.org"
   }))
 }
 
