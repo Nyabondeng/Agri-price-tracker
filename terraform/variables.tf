@@ -60,9 +60,15 @@ variable "db_password" {
 }
 
 variable "admin_ssh_public_key" {
-  description = "SSH public key for VM access"
+  description = "SSH public key for VM access (optional, auto-generated if not provided)"
   type        = string
-  default     = "~/.ssh/id_rsa.pub"
+  default     = ""
+}
+
+variable "ssh_public_key" {
+  description = "Alias for admin_ssh_public_key (for HCP Terraform compatibility)"
+  type        = string
+  default     = ""
 }
 
 variable "tags" {
