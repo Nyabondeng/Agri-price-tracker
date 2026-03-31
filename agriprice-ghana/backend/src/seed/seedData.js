@@ -21,7 +21,7 @@ async function run() {
   const adminPasswordHash = await bcrypt.hash("Admin123!", 10);
   const userPasswordHash = await bcrypt.hash("User123!", 10);
 
-  const [admin, user] = await User.create([
+  const [admin] = await User.create([
     {
       fullName: "AgriPrice Admin",
       email: "admin@agripricegh.com",
