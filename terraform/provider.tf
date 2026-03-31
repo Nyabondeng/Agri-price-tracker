@@ -18,6 +18,13 @@ terraform {
       version = "~> 4.0"
     }
   }
+
+  cloud {
+    organization = "Team_404"
+    workspaces {
+      name = "Agri-price-tracker"
+    }
+  }
 }
 
 provider "azurerm" {
