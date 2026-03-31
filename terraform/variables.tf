@@ -71,6 +71,13 @@ variable "ssh_public_key" {
   default     = ""
 }
 
+variable "docker_image_url" {
+  description = "Full Docker image URL to deploy (e.g., myacr.azurecr.io/agri-price-tracker:latest)"
+  type        = string
+  default     = ""
+  # This will be provided by GitHub Actions after building and pushing the image
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

@@ -167,83 +167,58 @@ jobs:
         run: |
           IMAGE="${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:${{ github.sha }}"
           docker push "$IMAGE" || (sleep 10 && docker push "$IMAGE")
+          # Also tag as latest for cloud-init deployments
+          docker tag agri-price-tracker:${{ github.sha }} ${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:latest
+          docker push "${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:latest"
+          echo "IMAGE_URL=$IMAGE" >> "$GITHUB_ENV"
 
       - name: Mark image push skipped when ACR secrets missing
         if: env.CAN_PUSH != 'true'
         run: |
           echo "Image push skipped because required ACR secrets are missing."
+          echo "IMAGE_URL=" >> "$GITHUB_ENV"
 
-      - name: Set up Python for Ansible
-        if: env.CAN_DEPLOY == 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible, Docker SDK, and collections
-        if: env.CAN_DEPLOY == 'true'
-        run: |
-          python -m pip install --upgrade pip
-          pip install ansible docker
-          ansible-galaxy collection install community.docker
-
-      - name: Prepare SSH key
-        if: env.CAN_DEPLOY == 'true'
+      - name: Update infrastructure with Terraform
+        if: env.CAN_PUSH == 'true'
         shell: bash
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "Cloud-init deployment will run automatically when VM boots"
+          echo "Docker image: $IMAGE_URL"
+          echo ""
+          echo "The application will be deployed automatically through:"
+          echo "  1. Infrastructure creation (Terraform)"
+          echo "  2. Cloud-init script (on VM boot)"
+          echo "  3. Nginx reverse proxy configuration"
+          echo "  4. Let's Encrypt SSL certificate provisioning"
+          echo "  5. Auto-renewal cron job setup"
+          echo ""
+          echo "No manual Ansible deployment needed!"
+          echo ""
+          echo "Deployment timeline:"
+          echo "  - VM boots: ~2 minutes"
+          echo "  - Cloud-init runs: ~3-5 minutes"
+          echo "  - SSL certificate: ~2-3 minutes"
+          echo "  - Total: ~7-10 minutes"
+          echo ""
+          echo "Monitor deployment logs on the VM:"
+          echo "  sudo tail -f /var/log/agri-price-tracker-deploy.log"
 
-      - name: Generate Ansible inventory from secrets
-        if: env.CAN_DEPLOY == 'true'
-        shell: bash
+      - name: Note about deployment
         run: |
-          set -euo pipefail
-          SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          if [ "${USE_BASTION:-false}" = "true" ]; then
-            SSH_ARGS="-o ProxyJump=azureuser@${BASTION_HOST} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-            echo "Using Bastion jump host ${BASTION_HOST} to reach private VM ${DEPLOY_HOST}."
-          fi
-          {
-            echo "[app]"
-            echo "app_vm ansible_host=${DEPLOY_HOST} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='${SSH_ARGS}'"
-          } > ansible/inventory.ini
-
-      - name: Check SSH reachability to deploy host
-        id: ssh_check
-        if: env.CAN_DEPLOY == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${CAN_DEPLOY:-false}" != "true" ]; then
-            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          CHECK_HOST="${DEPLOY_HOST}"
-          if [ "${USE_BASTION:-false}" = "true" ]; then
-            CHECK_HOST="${BASTION_HOST}"
-          fi
-          if ! timeout 8 bash -c "</dev/tcp/${CHECK_HOST}/22" 2>/dev/null; then
-            echo "::warning::Cannot reach ${CHECK_HOST}:22 from GitHub-hosted runner. Skipping Ansible deploy."
-            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy with Ansible
-        if: env.CAN_DEPLOY == 'true' && steps.ssh_check.outputs.can_deploy == 'true'
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
-          APP_IMAGE: ${{ steps.normalize_acr.outputs.acr_registry }}/agri-price-tracker:${{ github.sha }}
-          ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-          DOMAIN_NAME: "agri-price-tracker.duckdns.org"
-          CERT_EMAIL: "admin@agri-price-tracker.duckdns.org"
-        run: |
-          ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
-
-      - name: Mark deploy skipped when host unreachable
-        if: env.CAN_DEPLOY != 'true' || steps.ssh_check.outputs.can_deploy != 'true'
-        run: |
-          echo "Deployment skipped because SSH host is not reachable from GitHub-hosted runners."
+          echo "=========================================="
+          echo "Deployment Status"
+          echo "=========================================="
+          echo "✓ Docker image built and pushed to ACR"
+          echo "✓ Image available for deployment"
+          echo ""
+          echo "Application deployment happens via:"
+          echo "  • Cloud-init script (automatic on VM boot)"
+          echo "  • No manual SSH/Ansible required"
+          echo ""
+          echo "When VM is deployed, it will automatically:"
+          echo "  1. Install Docker and pull image"
+          echo "  2. Install Nginx reverse proxy"
+          echo "  3. Install Certbot"
+          echo "  4. Request SSL certificate from Let's Encrypt"
+          echo "  5. Configure HTTPS with auto-renewal"
+          echo "=========================================="

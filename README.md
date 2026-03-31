@@ -5,10 +5,8 @@
 ## 🚀 Live Application
 
 - **Development**: `http://localhost:3000/`
-- **Production Domain**: `http://agri-price-tracker.duckdns.org/` (when deployed)
+- **Production**: `https://agri-price-tracker.duckdns.org/` (fully automated deployment)
 - **API Endpoint**: `/api/prices` (JSON format)
-
-> **Note**: Production URL requires infrastructure deployment. See [Deployment Guide](#deployment-guide) below.
 
 ## 📋 Problem Statement & Impact
 
@@ -37,7 +35,7 @@
 | **Database** | PostgreSQL 15 | Persistent data storage |
 | **Containerization** | Docker, Docker Compose | Reproducible deployments |
 | **Infrastructure** | Terraform 1.6+ | Infrastructure as Code (Azure) |
-| **Config Mgmt** | Ansible 2.9+ | Automated server setup |
+| **Deployment** | Cloud-init | Automated VM provisioning |
 | **CI/CD** | GitHub Actions | Automated testing and deployment |
 | **Registry** | Azure Container Registry (ACR) | Private image storage |
 | **Domain** | DuckDNS | Free dynamic DNS service |
@@ -59,245 +57,393 @@
 - [x] JSON API endpoint (`GET /api/prices`)
 - [x] Responsive web interface
 - [x] Database integration (PostgreSQL)
-- [x] Containerized deployment
-- [x] Production-ready CI/CD pipeline
+- [x] Containerized deployment (Docker)
+- [x] Production-ready CI/CD pipeline (GitHub Actions)
+- [x] Automated infrastructure provisioning (Terraform + Cloud-init)
+- [x] Automatic HTTPS with Let's Encrypt SSL certificates
+- [x] Zero-manual-step deployment (fully automated)
 
 ## 📊 Architecture Overview
 
-### High-Level Deployment Flow
+### High-Level System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DEVELOPER WORKFLOW                        │
+│                      GITHUB WORKFLOW                            │
 │                                                                   │
-│  Git Push to Feature Branch → Create PR → GitHub Actions CI      │
-│              │                              │                    │
-│              └──────────────────┬───────────┘                    │
-│                                 │                                │
-│                    (Linting, Tests, Security Scans)             │
-│                                 │                                │
-│        Merge to main (if all checks pass)                       │
-│              │                                                   │
-│              v                                                   │
-│        GitHub Actions CD                                         │
-│     (Build, Push, Deploy)                                       │
+│  Developer Push → GitHub Actions CI (GitHub-hosted runner)      │
+│              ├─ Lint, Test, Security Scans                      │
+│              ├─ Build Docker Image                              │
+│              ├─ Push to Azure Container Registry                │
+│              └─ Notification of ready-to-deploy                 │
+│                                                                   │
+│  Merge to main → Terraform Triggered (HCP Terraform)            │
+│              ├─ Create/Update Infrastructure                    │
+│              ├─ Pass Docker Image URL to VM via cloud-init      │
+│              └─ VM Boots with Automatic Deployment              │
+│                                                                   │
+│  VM Boot → Cloud-Init Script (on the VM)                        │
+│              ├─ Install Docker                                  │
+│              ├─ Pull Image from ACR                             │
+│              ├─ Install Nginx Reverse Proxy                     │
+│              ├─ Install Certbot & Let's Encrypt                 │
+│              ├─ Request SSL Certificate                         │
+│              ├─ Setup Auto-Renewal (daily)                      │
+│              └─ Start Application (HTTPS Ready)                 │
+│                                                                   │
+│  Result: ✅ Live HTTPS Application (~15-20 min total)          │
 └─────────────────────────────────────────────────────────────────┘
-                              │
-                              v
-┌─────────────────────────────────────────────────────────────────┐
-│                      CLOUD INFRASTRUCTURE                        │
-│                        (Azure Region)                            │
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │             Virtual Network (VNet)                        │   │
-│  │           10.0.0.0/16                                    │   │
-│  │                                                            │   │
-│  │  ┌─────────────────────┐    ┌──────────────────────┐   │   │
-│  │  │ Public Subnet       │    │  Private Subnet      │   │   │
-│  │  │ (10.0.1.0/24)       │    │  (10.0.2.0/24)       │   │   │
-│  │  │                     │    │                      │   │   │
-│  │  │ ┌─────────────────┐ │    │ ┌──────────────────┐ │   │   │
-│  │  │ │ Azure Bastion   │ │    │ │  App VM          │ │   │   │
-│  │  │ │ (Jump Host)     │◄──SSH──┤  Docker          │ │   │   │
-│  │  │ │ Public IP:      │ │    │ │  Container       │ │   │   │
-│  │  │ │ 52.xxx.xxx.xxx  │ │    │ │  Private IP:     │ │   │   │
-│  │  │ └─────────────────┘ │    │ │  10.0.2.x        │ │   │   │
-│  │  │                     │    │ └──────────────────┘ │   │   │
-│  │  └─────────────────────┘    └──────────────────────┘   │   │
-│  │                                      │                  │   │
-│  │                                 database/               │   │
-│  │                                      │                  │   │
-│  │  ┌──────────────────────────────────────────────────┐  │   │
-│  │  │  Database Subnet (10.0.3.0/24)                   │  │   │
-│  │  │  PostgreSQL Database (Private)                   │  │   │
-│  │  └──────────────────────────────────────────────────┘  │   │
-│  │                                                          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                   │
-│                    Docker Image Storage                          │
-│              Azure Container Registry (ACR)                     │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              v
-                        ┌─────────────┐
-                        │   Internet  │
-                        │ (Users)     │
-                        └─────────────┘
 ```
 
-### Security Model
+### Cloud Infrastructure Layout
 
 ```
-Internet Traffic Flow:
-  User → (HTTPS) → DuckDNS (agri-price-tracker.duckdns.org)
-                      ↓
-                   Azure
-                      ↓
-  (Option 1) Load Balancer → App VM (Port 80/443)
-  (Option 2) SSH Tunnel via Bastion → App VM (Port 3000)
-
-Private Access (Admin/DevOps):
-  SSH → Bastion (Port 22, restricted) → App VM (Port 22)
-  Bastion → PostgreSQL (Port 5432)
+AZURE SUBSCRIPTION (southafricanorth region)
+│
+├─ Virtual Network (VNet): 10.0.0.0/16
+│  │
+│  ├─ Public Subnet (Bastion): 10.0.1.0/24
+│  │  └─ Azure Bastion Host
+│  │     └─ Public IP: [BASTION_HOST_IP]
+│  │
+│  ├─ Private Subnet (App): 10.0.2.0/24
+│  │  └─ Application VM (Ubuntu 22.04)
+│  │     ├─ Docker Container (Node.js)
+│  │     ├─ Nginx Reverse Proxy
+│  │     └─ Certbot/Let's Encrypt
+│  │
+│  └─ Database Subnet: 10.0.3.0/24
+│     └─ PostgreSQL 15 Flexible Server
+│        └─ Private endpoint (no public access)
+│
+├─ Network Security Groups (Firewalls)
+│  ├─ Bastion NSG
+│  │  └─ Allow: SSH (22) from your IP
+│  │
+│  └─ App NSG
+│     ├─ Allow: SSH (22) from Bastion subnet
+│     └─ Allow: HTTP (80), HTTPS (443) from Internet
+│
+└─ Azure Container Registry (ACR)
+   └─ Stores Docker images
+      └─ Login: ACR_LOGIN_SERVER / ACR_USERNAME / ACR_PASSWORD
 ```
 
-## 📚 Complete Development & Deployment Guide
+## � Deployment Guide
 
-### Local Development (For Testing)
+### No Manual Setup Required!
 
-#### Prerequisites
-- Node.js 22+
-- Docker Desktop
-- Git
+The entire deployment is **fully automated**. Here's what you need to know:
 
-#### Quick Start
+#### One-Time Setup (Before First Deployment)
+
+1. **GitHub Secrets Configuration** (5 minutes)
+   - Go to **GitHub → Your Repo → Settings → Secrets and variables → Actions**
+   - Create these 3 secrets (for Azure Container Registry):
+     - `ACR_LOGIN_SERVER` — Your ACR hostname (e.g., `myacr.azurecr.io`)
+     - `ACR_USERNAME` — ACR admin username
+     - `ACR_PASSWORD` — ACR admin password
+   - **Where to get values**: Azure Portal → Container Registries → Your ACR → Access Keys
+
+2. **HCP Terraform Configuration** (5 minutes)
+   - Go to **https://app.terraform.io/app/Team_404/Agri-price-tracker**
+   - Click **Variables** tab
+   - Add these **Terraform Variables**:
+     - `db_username` → `agreadmin`
+     - `db_password` → Strong password (mark as **Sensitive**)
+     - `ssh_public_key` → (leave empty, auto-generated)
+   - Click **Save variable** for each
+
+3. **DuckDNS Domain Setup** (5 minutes)
+   - Go to **https://www.duckdns.org**
+   - Create account and domain: `agri-price-tracker`
+   - Copy your **token** (used for IP updates)
+   - Note: Domain will point to Bastion public IP (see below)
+
+#### Deploy Infrastructure
+
+1. Go to **https://app.terraform.io/app/Team_404/Agri-price-tracker**
+2. Click **New Run** → **Plan and Apply**
+3. Review the 21 resources (VNet, Subnets, VM, Database, ACR, NSGs, etc.)
+4. Click **Confirm & Apply**
+5. Wait 5-10 minutes for infrastructure to be created
+
+#### Get Output Values for DuckDNS
+
+Once Terraform completes:
+1. Go to **Runs** → Latest run
+2. Expand **Outputs** section
+3. Copy `bastion_host_ip` value
+4. Update DuckDNS:
+   ```bash
+   # Replace YOUR_TOKEN and BASTION_IP
+   curl "https://www.duckdns.org/update?domains=agri-price-tracker&token=YOUR_TOKEN&ip=BASTION_IP"
+   ```
+   Or use [DuckDNS web interface](https://www.duckdns.org) to update manually
+
+#### Trigger Automated Deployment
 
 ```bash
-# Clone repository
-git clone https://github.com/Nyabondeng/Agri-price-tracker.git
+cd Agri-price-tracker
+git commit --allow-empty -m "Deploy: Trigger automated cloud-init deployment"
+git push origin main
+```
+
+Then the fully automated flow begins:
+1. GitHub Actions builds Docker image (~3 min)
+2. Pushes image to ACR (~1 min)
+3. Terraform creates VM with cloud-init script (~5 min)
+4. VM boots and cloud-init runs (~5-7 min):
+   - Installs Docker, Nginx, Certbot
+   - Pulls Docker image from ACR
+   - Waits for DuckDNS domain to resolve
+   - Requests SSL certificate from Let's Encrypt
+   - Configures HTTPS with auto-renewal
+   - Starts application container
+
+**Total time: ~15-20 minutes from Git push to live HTTPS application** ✅
+
+#### Access Your Application
+
+After cloud-init completes:
+- **HTTP**: `http://agri-price-tracker.duckdns.org` (auto-redirects to HTTPS)
+- **HTTPS**: `https://agri-price-tracker.duckdns.org` (with valid Let's Encrypt certificate)
+
+### Cloud-Init Automatic Deployment Process
+
+The cloud-init script (`terraform/cloud-init.tpl`) handles all deployment automatically:
+
+#### What Cloud-Init Does
+
+1. **Phase 1-3**: Install Docker, Nginx, Certbot packages
+2. **Phase 4-5**: Configure Nginx for HTTP + Let's Encrypt ACME validation
+3. **Phase 6-7**: Login to ACR, pull and run Docker container
+4. **Phase 8-9**: Wait for DNS, request SSL certificate from Let's Encrypt
+5. **Phase 10**: Configure Nginx for HTTPS with security headers
+6. **Phase 11**: Setup daily certificate auto-renewal via cron
+7. **Phase 12**: Display deployment summary with log locations
+
+**All automatically, without any manual intervention!**
+
+#### Monitor Deployment Progress
+
+SSH into the VM to watch deployment:
+
+```bash
+# Get Bastion IP from Terraform outputs
+BASTION_IP="<your-bastion-public-ip>"
+
+# SSH in
+ssh -i terraform/ssh-key-agric-price-tracker.pem azureuser@$BASTION_IP
+
+# View deployment logs in real-time
+tail -f /var/log/agri-price-tracker-deploy.log
+```
+
+### GitHub Workflow: CI → Build → Push → Deploy
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                    YOU: Make Code Change & Push                       │
+│                                                                        │
+│  $ git add .                                                          │
+│  $ git commit -m "feat: update dashboard"                            │
+│  $ git push origin feat/my-feature                                   │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │
+                             v
+┌──────────────────────────────────────────────────────────────────────┐
+│              GITHUB ACTIONS CI (GitHub-hosted runner)                 │
+│                                                                        │
+│  1. Lint code (ESLint)                                   [✓ Pass]    │
+│  2. Run tests                                            [✓ Pass]    │
+│  3. Build Docker image                                  [✓ Built]   │
+│  4. Scan image with Trivy (fail on CRITICAL)            [✓ Safe]    │
+│  5. Validate Terraform                                  [✓ Valid]   │
+│  6. Scan Terraform with tfsec (fail on CRITICAL)        [✓ Safe]    │
+│                                                                        │
+│  ✓ All checks pass → PR mergeable                                    │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │
+                             v
+┌──────────────────────────────────────────────────────────────────────┐
+│                  YOU: Create PR & Request Review                      │
+│                                                                        │
+│  → GitHub PR created                                                 │
+│  → CI checks run automatically                                       │
+│  → Request code review from team                                     │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │
+                             v
+┌──────────────────────────────────────────────────────────────────────┐
+│              TEAM: Review & Approve (if looks good)                   │
+│                                                                        │
+│  → Changes reviewed                                                  │
+│  → PR approved                                                       │
+│  → Merge to main                                                     │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │
+                             v
+┌──────────────────────────────────────────────────────────────────────┐
+│            GITHUB ACTIONS CD (GitHub-hosted runner)                   │
+│                                                                        │
+│  1. Run all CI checks again                             [✓ Pass]    │
+│  2. Build Docker image                                 [✓ Built]   │
+│  3. Push image to ACR (with commit SHA + latest tags) [✓ Pushed]   │
+│  4. Announce deployment ready via workflow logs                      │
+│                                                                        │
+│  ✓ Image ready in ACR for deployment                                │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │
+                             v
+┌──────────────────────────────────────────────────────────────────────┐
+│                  AUTOMATIC: Cloud-Init Deployment                     │
+│                     (when VM is provisioned/rebooted)                 │
+│                                                                        │
+│  VM boots with cloud-init script that:                               │
+│  1. Installs Docker            [✓ Done]                              │
+│  2. Installs Nginx             [✓ Done]                              │
+│  3. Installs Certbot           [✓ Done]                              │
+│  4. Pulls Docker image from ACR [✓ Done]                             │
+│  5. Runs application container [✓ Done]                              │
+│  6. Requests SSL certificate   [✓ Done]                              │
+│  7. Configures HTTPS           [✓ Done]                              │
+│  8. Sets up auto-renewal       [✓ Done]                              │
+│                                                                        │
+│  ✓ Application live at https://agri-price-tracker.duckdns.org   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+## 💻 Local Development
+
+### Quick Start (3 minutes)
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Agri-price-tracker.git
 cd Agri-price-tracker
 
+# Start with docker-compose
+docker compose up --build
+
+# Application available at:
+# http://localhost:3000
+```
+
+### Manual Setup (for development)
+
+```bash
 # Install dependencies
 npm install
 
-# Start development server
-npm start
+# Start backend
+npm run dev:backend
 
-# Frontend also available at:
-cd agriprice-ghana/frontend && npm run dev
-# Vite dev server: http://localhost:5173
+# In another terminal, start frontend
+npm run dev:frontend
 
-# Backend in another terminal:
-cd agriprice-ghana/backend && npm start
-# Express server: http://localhost:5000
+# Access at http://localhost:3000
 ```
 
-### Docker Compose Deployment
+### Running Tests
 
 ```bash
-# Build and run all services
-docker compose up --build
+# Lint code
+npm run lint
 
-# Navigate to http://localhost:3000
+# Run tests
+npm test
 
-# Stop services
-docker compose down
+# Build Docker image
+docker build -t agri-price-tracker:local .
+
+# Run container
+docker run -p 3000:3000 agri-price-tracker:local
 ```
 
-### Production Deployment (Azure Infrastructure)
 
-**Complete deployment requires**:
 
-1. **Azure Account Setup** (see [Terraform README](terraform/README.md))
-2. **Infrastructure Provisioning** (Terraform)
-3. **CI/CD Configuration** (GitHub Secrets)
-4. **Automated Deployment** (GitHub Actions)
+### GitHub Secrets (For ACR Access)
 
-#### Step 1: Terraform Infrastructure
+Go to **GitHub Repo → Settings → Secrets and variables → Actions**
 
-```bash
-cd terraform
+Create these secrets:
 
-# Initialize Terraform
-terraform init
+| Secret Name | Value | Where to Get | Required |
+|---|---|---|---|
+| `ACR_LOGIN_SERVER` | Azure Container Registry login server | Azure Portal → Container Registries → Access Keys | ✅ Yes |
+| `ACR_USERNAME` | ACR admin username | Same as above | ✅ Yes |
+| `ACR_PASSWORD` | ACR admin password | Same as above | ✅ Yes |
 
-# Plan deployment (review resources)
-terraform plan \
-  -var="db_username=admin" \
-  -var="db_password=YourSecurePassword123!"
+**Steps to get ACR credentials:**
+1. Go to **Azure Portal**
+2. Search for **Container Registries**
+3. Click your ACR
+4. Go to **Settings → Access Keys**
+5. If "Admin user" is not enabled, enable it
+6. Copy the values
 
-# Deploy infrastructure (5-10 minutes)
-terraform apply
+### HCP Terraform Variables (For Infrastructure)
 
-# Save outputs for next steps
-terraform output -json > outputs.json
-```
+Go to **https://app.terraform.io/app/Team_404/Agri-price-tracker → Variables**
 
-**What gets created**:
-- Virtual Network with 3 subnets (public, private, database)
-- Azure Bastion Host (for SSH access)
-- Application Virtual Machine (Ubuntu 22.04 LTS)
-- PostgreSQL Database
-- Azure Container Registry
-- Network Security Groups
-- SSH key pair
+Create these as **Terraform Variables**:
 
-See [terraform/README.md](terraform/README.md) for detailed instructions.
+| Variable Name | Value | Sensitive | Notes |
+|---|---|---|---|
+| `db_username` | `agreadmin` | No | Database admin username |
+| `db_password` | Strong password (12+ chars) | **Yes** ✅ Mark sensitive | Database admin password |
+| `ssh_public_key` | (leave empty) | No | Auto-generated by Terraform |
 
-#### Step 2: Configure GitHub Secrets
+**Steps:**
+1. Go to HCP Terraform workspace
+2. Click **Variables** tab
+3. Click **Create variable**
+4. Select **Terraform variable**
+5. Enter name and value
+6. If sensitive, check **Sensitive** checkbox
+7. Click **Save variable**
+8. Repeat for each variable
 
-In GitHub Repository Settings → Secrets and variables → Actions:
+## 🌐 Domain Configuration (DuckDNS)
 
-**Required secrets** (for CI/CD image push):
-- `ACR_LOGIN_SERVER` — From Terraform output or Azure Portal
-- `ACR_USERNAME` — ACR admin username
-- `ACR_PASSWORD` — ACR admin password
+### What is DuckDNS?
 
-**Recommended secrets** (for VM deployment):
-- `BASTION_HOST` — Public IP of Bastion (Terraform output: `bastion_host_ip`)
-- `APP_PRIVATE_IP` — Private IP of App VM (Terraform output: `app_vm_private_ip`)
-- `SSH_PRIVATE_KEY` — SSH private key (from `terraform/ssh-key-agric-price-tracker.pem`)
+DuckDNS is a **free dynamic DNS service**. It lets your domain point to a changing IP address without manual updates.
 
-See [docs/GITHUB_SECRETS.md](docs/GITHUB_SECRETS.md) for step-by-step guide.
+### Setup Steps
 
-#### Step 3: Trigger Deployment
+1. **Create DuckDNS Account**
+   - Go to **https://www.duckdns.org**
+   - Login with GitHub
+   - Create domain: `agri-price-tracker`
 
-```bash
-# Make a code change
-echo "# Updated" >> README.md
+2. **Get Your Token**
+   - From DuckDNS dashboard, copy your **token** (long string)
+   - Keep this safe
 
-# Commit and push to feature branch
-git checkout -b feat/update-readme
-git add .
-git commit -m "docs: update readme"
-git push origin feat/update-readme
+3. **Update DuckDNS with Azure Bastion IP**
+   - After Terraform deployment, get Bastion public IP from outputs
+   - Update DuckDNS:
+     ```bash
+     # Option A: cURL
+     curl "https://www.duckdns.org/update?domains=agri-price-tracker&token=YOUR_TOKEN&ip=BASTION_IP"
+     
+     # Option B: Web interface
+     # Go to https://www.duckdns.org, click domain, update IP manually
+     ```
 
-# Create Pull Request on GitHub
-# CI pipeline runs automatically (lint, test, security scans)
+4. **Verify DNS Resolution**
+   ```bash
+   nslookup agri-price-tracker.duckdns.org
+   # Should return your Bastion public IP
+   ```
 
-# Once all checks pass, merge to main
-# CD pipeline runs automatically:
-#   1. Build Docker image
-#   2. Push to ACR
-#   3. Deploy via Ansible playbook
-#   4. Application updated in ~2-3 minutes
-```
+### Using Your Domain
 
-#### Step 4: Configure Domain
-
-Link DuckDNS to your Bastion Host IP:
-
-```bash
-# Get Bastion IP
-terraform output bastion_host_ip
-
-# Update DuckDNS
-# See docs/DUCKDNS.md for detailed instructions
-```
-
-### Complete Testing & Validation
-
-See [docs/DEPLOYMENT_TESTING.md](docs/DEPLOYMENT_TESTING.md) for comprehensive testing checklist covering:
-
-- ✅ Infrastructure tests
-- ✅ Connectivity tests
-- ✅ CI pipeline validation
-- ✅ CD pipeline validation
-- ✅ End-to-end Git-to-Production flow
-- ✅ Cleanup and teardown
-
-## 📖 Documentation Files
-
-| Document | Purpose |
-|----------|---------|
-| [terraform/README.md](terraform/README.md) | Infrastructure as Code guide |
-| [ansible/README.md](ansible/README.md) | Configuration management guide |
-| [docs/GITHUB_SECRETS.md](docs/GITHUB_SECRETS.md) | GitHub Secrets setup |
-| [docs/DUCKDNS.md](docs/DUCKDNS.md) | Domain configuration |
-| [docs/DEPLOYMENT_TESTING.md](docs/DEPLOYMENT_TESTING.md) | Testing checklist |
-| [.github/workflows/ci.yml](.github/workflows/ci.yml) | CI pipeline (linting, testing, security) |
-| [.github/workflows/cd.yml](.github/workflows/cd.yml) | CD pipeline (build, push, deploy) |
+Once DNS is updated:
+- **HTTP**: `http://agri-price-tracker.duckdns.org`
+- **HTTPS**: `https://agri-price-tracker.duckdns.org` (auto-configured by cloud-init)
 
 ## 🔌 API Reference
 
@@ -307,7 +453,7 @@ Returns current prices for all tracked commodities.
 
 **Request**:
 ```bash
-curl http://localhost:3000/api/prices
+curl https://agri-price-tracker.duckdns.org/api/prices
 ```
 
 **Response** (200 OK):
@@ -334,79 +480,101 @@ curl http://localhost:3000/api/prices
 }
 ```
 
+**Commodities Tracked**: Maize, Rice, Cassava, Yam, Tomatoes, Cocoa
+
+**Markets**: Kumasi, Accra, Takoradi, Tema, Sekondi, Cape Coast
+
 **Status Codes**:
 - `200` — Success
 - `404` — Endpoint not found
 - `500` — Server error
 
-**Commodities Tracked**: Maize, Rice, Cassava, Yam, Tomatoes, Cocoa
-
-**Markets**: Kumasi, Accra, Takoradi, Tema, Sekondi, Cape Coast
-
 ## 🔐 Security Implementation
 
-### Network Security
+### Network Security Architecture
 
 ```
-Public Internet ←→ Azure NSG (Firewall)
-                        ↓
-                  Allow: HTTP/HTTPS (80, 443)
-                  Allow: SSH (22) from Bastion only
-                        ↓
-                   Application VM
-                        ↓
-                  PostgreSQL (Private)
-                  Allow: Port 5432 from App VM only
+Internet
+   ↓
+Azure NSG (Firewall)
+   ├─ Allow: HTTPS (443) from anywhere
+   ├─ Allow: HTTP (80) from anywhere
+   └─ Allow: SSH (22) from specific IPs
+         ↓
+Nginx (Reverse Proxy)
+   ├─ HTTPS with Let's Encrypt
+   ├─ HTTP → HTTPS redirect
+   └─ Security headers
+         ↓
+Docker Container (Node.js)
+   └─ Application (port 3000)
+         ↓
+PostgreSQL (Private)
+   └─ Accessible only from App VM
 ```
 
-### Secret Management
+### Security Features
 
-- GitHub Secrets (for CI/CD credentials)
-- Azure Vault (for production credentials)
-- SSH key pairs (RSA 4096-bit)
-- Environment variables (never hardcoded)
+✅ **Transport Security**
+- TLS 1.2 and 1.3 only
+- Strong cipher suites
+- HTTP/2 support
 
-### DevSecOps Scanning
+✅ **Application Security**
+- Strict CORS headers
+- X-Frame-Options: SAMEORIGIN
+- Content-Type validation
+- HSTS (HTTP Strict Transport Security)
 
-The CI pipeline includes:
-- **Trivy**: Scans Docker images for vulnerabilities
-- **tfsec**: Scans Terraform for security issues
-- **ESLint**: Code quality and security rules
-- **Overall**: Fails build if CRITICAL vulnerabilities detected
+✅ **SSL Certificates**
+- Automatic via Let's Encrypt
+- 90-day expiration
+- Daily auto-renewal
+- Zero downtime renewal
+
+✅ **Access Control**
+- Private VNet for databases
+- Bastion host for SSH access
+- Network Security Groups (firewalls)
+- SSH key-based authentication
+
+✅ **CI/CD Security**
+- Trivy scans Docker images
+- tfsec scans Terraform
+- ESLint security rules
+- Fails build on CRITICAL vulnerabilities
 
 ## 📦 Repository Structure
 
 ```
 Agri-price-tracker/
-├── agriprice-ghana/
-│   ├── frontend/          # React Vite application
-│   │   ├── src/
-│   │   ├── package.json
-│   │   └── vite.config.js
-│   └── backend/           # Express Node.js API
-│       ├── src/
-│       └── package.json
-├── terraform/             # Infrastructure as Code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── provider.tf
-│   └── README.md
-├── ansible/               # Configuration Management
-│   ├── deploy.yml
-│   ├── inventory.ini
-│   └── README.md
-├── .github/workflows/     # CI/CD Pipelines
-│   ├── ci.yml             # Triggers on PR, runs tests/scans
-│   └── cd.yml             # Triggers on merge, deploys to prod
-├── docs/                  # Documentation
-│   ├── GITHUB_SECRETS.md
-│   ├── DUCKDNS.md
-│   └── DEPLOYMENT_TESTING.md
-├── docker-compose.yml     # Local development compose file
-├── Dockerfile             # Multi-stage Docker build
-├── README.md              # This file
-└── .gitignore
+├── agriprice-ghana/           # Application code
+│   ├── package.json          # Dependencies
+│   └── README.md             # App-specific docs
+│
+├── terraform/                # Infrastructure as Code
+│   ├── main.tf              # Main resource definitions
+│   ├── provider.tf          # Terraform provider config
+│   ├── variables.tf         # Variable definitions
+│   ├── outputs.tf           # Output definitions
+│   ├── cloud-init.tpl       # VM provisioning script
+│   └── README.md            # Terraform guide
+│
+├── ansible/                 # Configuration Management
+│   ├── deploy.yml          # Playbook for system setup
+│   ├── inventory.ini        # Host inventory
+│   └── README.md            # Ansible guide
+│
+├── .github/workflows/       # CI/CD Pipelines
+│   ├── ci.yml              # Runs on PR: lint, test, scan
+│   └── cd.yml              # Runs on merge: build, push
+│
+├── docker/
+│   └── Dockerfile          # Multi-stage Docker build
+│
+├── README.md               # This file
+├── CONTRIBUTING.md         # Contribution guidelines
+└── .gitignore             # Git ignore rules
 ```
 
 ## 🚀 Deployment Workflows
@@ -438,45 +606,48 @@ Code merged to main → GitHub Actions CD
                        ├─ Run all CI checks (again)
                        ├─ Build Docker image
                        ├─ Push to Azure Container Registry
-                       ├─ Setup Ansible
-                       ├─ Generate inventory from secrets
-                       ├─ Connect via Bastion to private VM
-                       ├─ Run Ansible playbook
-                       │  ├─ Install Docker
-                       │  ├─ Login to ACR
-                       │  ├─ Pull latest image
-                       │  └─ Deploy container
-                       └─ Application live (2-3 minutes)
+                       └─ Ready for cloud-init deployment
+                          (VM auto-pulls latest image on boot/restart)
 
-Result: Changes automatically deployed with zero manual steps
+Result: New Docker image deployed via cloud-init
+        with zero manual SSH or Ansible steps
 ```
 
 ## ⚙️ Configuration
 
 ### Environment Variables
 
-**Frontend** (`agriprice-ghana/frontend/.env`):
+**Frontend** (`.env`):
 ```
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=https://agri-price-tracker.duckdns.org/api
 ```
 
-**Backend** (`agriprice-ghana/backend/.env`):
+**Backend** (`.env`):
 ```
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://user:pass@host:5432/agriprice_ghana
-CORS_ORIGIN=http://localhost:3000
+DATABASE_URL=postgresql://agreadmin:password@db-host:5432/agriprice_ghana
+CORS_ORIGIN=https://agri-price-tracker.duckdns.org
 ```
+
+### Cloud-Init Variables
+
+The `terraform/cloud-init.tpl` script receives these variables from Terraform:
+- `docker_image` — Full ACR image URL (including tag)
+- `acr_login_server` — ACR hostname
+- `acr_username` — ACR admin username
+- `acr_password` — ACR admin password
+- `domain_name` — DuckDNS domain (agri-price-tracker.duckdns.org)
+- `cert_email` — Email for Let's Encrypt certificate renewal alerts
 
 ### Database
 
-PostgreSQL 15 with tables:
-- `users` — Admin and user accounts
-- `commodities` — Crop information
-- `prices` — Current and historical prices
-- `markets` — Location data
+PostgreSQL 15 running in private Azure subnet with tables:
+- `commodities` — Crop information (Maize, Rice, etc.)
+- `prices` — Current market prices
+- `markets` — Location information (Kumasi, Accra, etc.)
 
-Connection via private VNet link (not public internet).
+Connection via private VNet link (not exposed to public internet).
 
 ## 📊 Database Schema
 
@@ -519,7 +690,7 @@ npm run lint
 npm test
 
 # Build Docker image
-docker build -t agri-price-tracker:test .
+docker build -t agri-price-tracker:local .
 
 # Test with docker-compose
 docker compose up --build
@@ -535,14 +706,9 @@ terraform -chdir=terraform validate
 # Plan deployment
 terraform -chdir=terraform plan -out=tfplan
 
-# Test Ansible playbook (dry-run)
-ansible-playbook -i ansible/inventory.ini ansible/deploy.yml --check
-
-# Run Ansible playbook (actual deployment)
-ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+# Check cloud-init script syntax
+bash -n terraform/cloud-init.tpl
 ```
-
-See [docs/DEPLOYMENT_TESTING.md](docs/DEPLOYMENT_TESTING.md) for comprehensive testing guide.
 
 ## 🔄 Continuous Integration/Deployment (CI/CD)
 
@@ -615,54 +781,54 @@ chore: dependency updates
 ### Local SSH Access (for debugging)
 
 ```bash
-# Connect through Bastion to private VM
+# Connect to Bastion
 BASTION_IP=$(terraform output -raw bastion_host_ip)
-APP_IP=$(terraform output -raw app_vm_private_ip)
+ssh -i terraform/ssh-key-agric-price-tracker.pem azureuser@$BASTION_IP
 
-ssh -i terraform/ssh-key-agric-price-tracker.pem \
-    -o ProxyCommand="ssh -i terraform/ssh-key-agric-price-tracker.pem -W %h:%p azureuser@$BASTION_IP" \
-    azureuser@$APP_IP
+# View cloud-init deployment logs
+tail -f /var/log/agri-price-tracker-deploy.log
 
 # Check running containers
 docker ps
+docker ps -a  # Show all including stopped
 
 # View application logs
-docker logs agric-price-tracker-app
+docker logs agric-price-tracker-app -f
 
-# Restart container
-docker restart agric-price-tracker-app
+# Check Nginx status
+sudo systemctl status nginx
+sudo tail -f /var/log/nginx/error.log
 
-# Exit SSH
+# Check Certbot certificate
+sudo certbot certificates
+
+# Exit
 exit
 ```
 
 ### Modifying Infrastructure
 
-Edit `terraform.tfvars` or variables in `terraform/variables.tf`:
+Edit variables and redeploy:
 
 ```bash
-# Change VM size (example)
-sed -i 's/Standard_B2s_v2/Standard_B4ms/g' terraform/terraform.tfvars
+# Update HCP Terraform variables
+# Go to: https://app.terraform.io/app/Team_404/Agri-price-tracker → Variables
 
-# Plan and apply
-terraform -chdir=terraform plan
-terraform -chdir=terraform apply
-
-# Wait 5-10 minutes for VM recreation
+# Then trigger a new run manually or push a new commit
+git commit --allow-empty -m "chore: trigger terraform update"
+git push origin main
 ```
 
-### Regenerating SSH Key
+### Redeploying Application (Latest Docker Image)
 
 ```bash
-# Remove old key
-rm terraform/ssh-key-agric-price-tracker.pem
+# Force VM to pull latest image by rebooting
+# Option 1: Via Terraform
+cd terraform
+terraform apply -target=azurerm_linux_virtual_machine.app_vm -refresh=true
 
-# Regenerate
-terraform -chdir=terraform force-new=azurerm_ssh_public_key.vm apply
-
-# Update GitHub secret with new key
-cat terraform/ssh-key-agric-price-tracker.pem
-# (copy output, paste into GitHub Settings → Secrets → SSH_PRIVATE_KEY)
+# Option 2: Via Azure Portal
+# Go to VM → Overview → Restart
 ```
 
 ## 🐛 Troubleshooting
@@ -692,95 +858,150 @@ rm -rf node_modules package-lock.json
 npm ci
 ```
 
-### Infrastructure Issues
+### Infrastructure & Deployment Issues
 
-**Terraform state corruption**:
+**Cloud-Init Deployment Fails**
+
+1. **SSH into VM and check logs**:
+   ```bash
+   ssh -i terraform/ssh-key-agric-price-tracker.pem azureuser@$BASTION_IP
+   tail -100 /var/log/agri-price-tracker-deploy.log
+   ```
+
+2. **Common issues**:
+   - DNS not resolving: Domain not properly configured in DuckDNS
+   - Port 80 blocked: Check Network Security Group allows port 80
+   - Docker login fails: Verify ACR credentials passed to cloud-init
+   - Certificate request fails: Check domain resolves before running certbot
+
+**Terraform State Issues**:
 ```bash
-# Reload from remote state (if using HCP Terraform)
+# Reload from HCP Terraform
 terraform refresh
 
 # Or show current state
 terraform state list
-terraform state show <resource_name>
+terraform state show azurerm_linux_virtual_machine.app_vm
 ```
 
-**Ansible SSH timeout**:
-```bash
-# Check connectivity to Bastion
-ping <BASTION_IP>
+**Application not responding at domain**
 
-# Verify SSH key permissions
-chmod 600 ~/.ssh/ssh-key-agric-price-tracker.pem
+1. Check DuckDNS is pointing to correct IP:
+   ```bash
+   nslookup agri-price-tracker.duckdns.org
+   # Should return Bastion public IP
+   ```
 
-# Test SSH directly
-ssh -vvv -i ... azureuser@<BASTION_IP>
-```
+2. Check cloud-init logs on VM:
+   ```bash
+   tail -100 /var/log/agri-price-tracker-deploy.log
+   ```
 
-**CD pipeline fails silently**:
-1. Check GitHub Actions tab for logs
-2. Look for "SSH_PRIVATE_KEY not set" warning (normal if deploying without secrets)
-3. Verify ACR credentials are correct in GitHub Secrets
-4. Run `terraform output` to confirm IPs haven't changed
+3. Check container is running:
+   ```bash
+   docker ps | grep agric-price-tracker
+   docker logs agric-price-tracker-app | tail -50
+   ```
 
-See [docs/GITHUB_SECRETS.md](docs/GITHUB_SECRETS.md) for credential troubleshooting.
+**SSL certificate not obtained**
 
-## 📚 Learning Resources
+1. Verify domain resolves to public IP:
+   ```bash
+   nslookup agri-price-tracker.duckdns.org
+   ```
 
-### DevOps Concepts
-- [Terraform Best Practices](https://www.terraform.io/docs)
-- [Ansible Documentation](https://docs.ansible.com/)
-- [GitHub Actions Guide](https://docs.github.com/en/actions)
-- [Infrastructure as Code](https://www.terraform.io/intro)
-- [CI/CD Basics](https://en.wikipedia.org/wiki/CI/CD)
+2. Check port 80 is accessible:
+   ```bash
+   curl -I http://agri-price-tracker.duckdns.org/
+   ```
 
-### Azure Platform
-- [Azure Terraform Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- [Azure Bastion Documentation](https://learn.microsoft.com/en-us/azure/bastion/)
-- [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/)
-- [Azure Virtual Networks](https://learn.microsoft.com/en-us/azure/virtual-network/)
+3. Check Nginx is running:
+   ```bash
+   sudo systemctl status nginx
+   sudo nginx -t  # Test config
+   ```
 
-### Docker & Kubernetes
-- [Docker Documentation](https://docs.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [Best Practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
+**SSH access denied**
 
-## 🤝 Contributing
+1. Check SSH key path:
+   ```bash
+   ls -la terraform/ssh-key-agric-price-tracker.pem
+   ```
 
-1. Create a feature branch: `git checkout -b feat/your-feature`
-2. Make your changes
-3. Commit: `git commit -m "feat: description"`
-4. Push: `git push origin feat/your-feature`
-5. Open a Pull Request
-6. Wait for CI checks to pass and code review
+2. Check Bastion IP is correct:
+   ```bash
+   terraform output bastion_host_ip
+   ```
 
-## 📄 License
+3. Verify SSH key permissions:
+   ```bash
+   chmod 600 terraform/ssh-key-agric-price-tracker.pem
+   ```
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+**Docker image not updating**
 
-## 📞 Support & Communication
+1. Force pull latest image from ACR:
+   ```bash
+   docker pull myacr.azurecr.io/agri-price-tracker:latest
+   docker run -d -p 80:3000 myacr.azurecr.io/agri-price-tracker:latest
+   ```
 
-- **Issues**: GitHub Issues tab for bug reports
-- **Discussions**: GitHub Discussions for feature requests
-- **Direct**: Team members via email or Slack
+2. Or restart VM to trigger cloud-init re-execution:
+   ```bash
+   terraform apply -target=azurerm_linux_virtual_machine.app_vm
+   ```
 
----
+## 📚 Documentation
 
-## 📋 Deployment Checklist
+For detailed guides, see:
 
-Before final submission, complete [docs/DEPLOYMENT_TESTING.md](docs/DEPLOYMENT_TESTING.md):
+| Document | Purpose |
+|----------|---------|
+| [terraform/README.md](terraform/README.md) | Complete Infrastructure as Code guide |
+| [ansible/README.md](ansible/README.md) | Configuration management & playbook details |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute to the project |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | CI pipeline source code |
+| [.github/workflows/cd.yml](.github/workflows/cd.yml) | CD pipeline source code |
 
-- [ ] Infrastructure deploys cleanly with Terraform
-- [ ] Ansible playbook configures VM successfully
-- [ ] CI pipeline runs on all PRs
-- [ ] CD pipeline runs on main merges
-- [ ] Security scans pass (Trivy, tfsec)
-- [ ] Code changes deploy automatically
-- [ ] Live application accessible via domain
-- [ ] All documentation updated
-- [ ] Video demo recorded (10-15 min)
+## 🎯 Next Steps
 
----
+After infrastructure is deployed:
 
-**Last Updated**: 2026-03-31  
-**Repository**: [GitHub](https://github.com/Nyabondeng/Agri-price-tracker)  
-**Documentation Version**: 2.0 (Complete DevOps Pipeline)
+1. **Monitor Application Logs**
+   ```bash
+   ssh -i terraform/ssh-key-agric-price-tracker.pem azureuser@BASTION_IP
+   docker logs agric-price-tracker-app -f
+   ```
+
+2. **Verify HTTPS Certificate**
+   ```bash
+   curl -I https://agri-price-tracker.duckdns.org/
+   # Should show: 200 OK
+   ```
+
+3. **Check Certificate Expiry**
+   ```bash
+   openssl s_client -connect agri-price-tracker.duckdns.org:443 </dev/null | \
+   openssl x509 -noout -dates
+   ```
+
+4. **Make Code Changes and Push**
+   ```bash
+   git checkout -b feat/my-feature
+   # Make changes...
+   git commit -m "feat: describe change"
+   git push origin feat/my-feature
+   # Create PR on GitHub
+   # Once approved & merged, it auto-deploys!
+   ```
+
+## 💡 Key Features of This Setup
+
+✅ **Zero Manual Deployments** — Push code → Auto-deploys  
+✅ **Automatic HTTPS** — Let's Encrypt with daily renewal  
+✅ **Infrastructure as Code** — Reproducible, version-controlled  
+✅ **Security Scanning** — Trivy, tfsec, ESLint in CI/CD  
+✅ **Private Database** — Not exposed to internet  
+✅ **Bastion Host** — Secure SSH access  
+✅ **DuckDNS Domain** — Free DNS with dynamic IP support  
+✅ **Cloud-Init Automation** — No manual setup needed
