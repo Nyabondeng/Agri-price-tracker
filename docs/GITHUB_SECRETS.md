@@ -71,7 +71,7 @@ ACR_LOGIN_SERVER=***
 3. Value: Paste password (use password1 or password2, either works)
 4. Click **Add secret**
 
-⚠️ **Note**: ACR passwords are admin access credentials. Rotate them if compromised:
+ **Note**: ACR passwords are admin access credentials. Rotate them if compromised:
 ```bash
 az acr credential-renew --name <registry-name> --password-name password1
 ```
@@ -137,7 +137,7 @@ These secrets enable the CD pipeline to deploy to your Azure VM via Ansible.
 5. Value: Paste the complete private key (multi-line)
 6. Click **Add secret**
 
-⚠️ **Security**: This is the most sensitive secret. Protect it carefully:
+**Security**: This is the most sensitive secret. Protect it carefully:
 - Never share with anyone
 - Never commit to Git (use .gitignore)
 - Rotate if compromised:

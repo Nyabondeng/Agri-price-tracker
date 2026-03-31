@@ -1,3 +1,25 @@
+terraform {
+  required_version = ">= 1.3.7"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.43.0"
+    }
+  }
+
+  cloud {
+    organization = "Team_404"
+    workspaces {
+      name = "Agri-price-tracker"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+
 resource "random_string" "suffix" {
   length  = 6
   special = false
