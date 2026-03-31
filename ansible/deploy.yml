@@ -25,7 +25,82 @@
           - gnupg
           - lsb-release
           - python3-pip
+          - nginx
+          - certbot
+          - python3-certbot-nginx
         state: present
+
+    - name: Ensure Nginx is started and enabled
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create Nginx reverse proxy configuration
+      ansible.builtin.copy:
+        content: |
+          # Nginx reverse proxy configuration for Agri Price Tracker
+          server {
+            listen 80 default_server;
+            listen [::]:80 default_server;
+            server_name _;
+
+            # Redirect all HTTP traffic to the Node.js app running on 3000
+            location / {
+              proxy_pass http://localhost:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection 'upgrade';
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_cache_bypass $http_upgrade;
+            }
+
+            # Allow .well-known for Let's Encrypt ACME challenges
+            location /.well-known/acme-challenge/ {
+              root /var/www/certbot;
+            }
+          }
+        dest: /etc/nginx/sites-available/default
+      notify: Reload Nginx
+
+    - name: Test Nginx configuration syntax
+      shell: nginx -t
+      register: nginx_test_result
+      changed_when: false
+
+    - name: Fail if Nginx config is invalid
+      fail:
+        msg: "Nginx configuration is invalid: {{ nginx_test_result.stderr }}"
+      when: nginx_test_result.rc != 0
+
+    - name: Create certbot renewal script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          # Auto-renew Let's Encrypt certificates
+          # This script is called daily by cron to check for expiring certificates
+          certbot renew --quiet --agree-tos --non-interactive
+          nginx -s reload 2>/dev/null || systemctl reload nginx
+        dest: /usr/local/bin/certbot-renew.sh
+        mode: '0755'
+
+    - name: Create cron job for Certbot auto-renewal (daily at 3:30 AM)
+      ansible.builtin.cron:
+        name: "Auto-renew Let's Encrypt certificates"
+        minute: "30"
+        hour: "3"
+        job: "/usr/local/bin/certbot-renew.sh"
+        user: root
+        state: present
+
+    - name: Create certbot validation directory
+      ansible.builtin.file:
+        path: /var/www/certbot
+        state: directory
+        mode: '0755'
 
     - name: Create Docker apt keyring directory
       ansible.builtin.file:
@@ -94,3 +169,10 @@
         env:
           NODE_ENV: production
           PORT: "3000"
+
+  handlers:
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
