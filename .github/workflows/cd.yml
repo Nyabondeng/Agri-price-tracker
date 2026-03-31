@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   deploy-production:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, azure, automated-deployment]
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -238,6 +238,8 @@ jobs:
           ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+          DOMAIN_NAME: "agri-price-tracker.duckdns.org"
+          CERT_EMAIL: "admin@agri-price-tracker.duckdns.org"
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 
