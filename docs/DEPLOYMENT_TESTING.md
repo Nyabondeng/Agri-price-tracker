@@ -4,7 +4,7 @@ This document provides a comprehensive testing plan to verify the entire Git-to-
 
 ## Pre-Deployment Setup
 
-### ✅ Checklist: Infrastructure Prerequisites
+### Checklist: Infrastructure Prerequisites
 
 - [ ] Azure account created and verified
 - [ ] Service Principal or Azure CLI authentication configured
@@ -14,7 +14,7 @@ This document provides a comprehensive testing plan to verify the entire Git-to-
 - [ ] Docker Desktop installed (for local testing)
 - [ ] Git configured with SSH keys (`git config --list`)
 
-### ✅ Checklist: Repository State
+### Checklist: Repository State
 
 - [ ] Code pushed to GitHub main branch
 - [ ] All uncommitted changes stashed: `git status` shows clean
@@ -24,7 +24,7 @@ This document provides a comprehensive testing plan to verify the entire Git-to-
 - [ ] docker-compose.yml configured correctly
 - [ ] .gitignore includes terraform.tfstate and SSH keys
 
-### ✅ Checklist: GitHub Repository Setup
+### Checklist: GitHub Repository Setup
 
 - [ ] Repository visibility is public (for live URL access)
 - [ ] Branch protection enabled on main branch
@@ -49,7 +49,7 @@ terraform validate
 # Expected: "Validation successful"
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] `terraform fmt -check -recursive` returns 0
 - [ ] `terraform validate` shows "Validation successful"
 - [ ] No warnings or errors in output
@@ -64,7 +64,7 @@ terraform plan -out=tfplan \
 # Review the plan output
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] Shows "Plan: X added, 0 changed, 0 destroyed" (typically 17-20 resources)
 - [ ] No errors in plan output
 - [ ] Plan saved to `tfplan` file
@@ -99,7 +99,7 @@ terraform apply tfplan
 # Monitor on Azure Portal while applying
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All resources created successfully
 - [ ] No errors or failed resources
 - [ ] Terraform state file created (`terraform.tfstate`)
@@ -132,7 +132,7 @@ Resource Group: rg-agric-price-tracker-*
   └─ Network Security Groups (2x)
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All resources visible in Azure Portal
 - [ ] Bastion Host status: "Provisioned" (green checkmark)
 - [ ] Virtual Machine status: "Running" (green checkmark)
@@ -152,7 +152,7 @@ ssh -i ssh-key-agric-price-tracker.pem azureuser@$BASTION_IP
 azureuser@vm-app-xxxxx:~$ exit
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] SSH connection successful
 - [ ] Command prompt appears: `azureuser@...`
 - [ ] Can type commands
@@ -173,7 +173,7 @@ psql -h $PGHOST -U $PGUSER -d postgres -c "SELECT version();"
 # You should see database version
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] PostgreSQL connection successful
 - [ ] Database version displayed
 - [ ] Can create test table
@@ -191,7 +191,7 @@ terraform destroy
 # Duration: 5-10 minutes
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All resources destroyed successfully
 - [ ] No "orphaned" resources left in Azure Portal
 - [ ] State file shows no resources: `terraform state list` (empty)
@@ -214,7 +214,7 @@ terraform apply -auto-approve \
   -var="db_password=SecurePassword123!"
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All resources created again successfully
 - [ ] Same resource counts as Test 1.3
 - [ ] No terraform errors
@@ -253,7 +253,7 @@ ansible-playbook -i inventory.ini deploy.yml --check
 ansible-playbook -i inventory.ini deploy.yml
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] Ansible ping succeeds
 - [ ] Dry-run shows all tasks
 - [ ] Playbook run succeeds without errors
@@ -280,7 +280,7 @@ git push origin test/ci-validation
 1. Create PR from `test/ci-validation` → `main`
 2. Monitor Actions tab
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] CI workflow triggered automatically (check Actions tab)
 - [ ] All jobs run: lint, test, build, scan
 - [ ] Linting passes (0 errors)
@@ -301,7 +301,7 @@ git commit -m "test: direct commit"
 git push origin test/ci-validation
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] CI reruns automatically
 - [ ] All checks still pass
 - [ ] No merge required yet
@@ -319,7 +319,7 @@ Settings → Branches → main → Branch protection rules
   └─ [✓] Dismiss stale PR approvals
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] Status checks are required
 - [ ] CI pipeline listed in required checks
 - [ ] Cannot merge without passing checks
@@ -352,7 +352,7 @@ az acr credential show --name acragricpricetrickeravloqy
 # - SSH_PRIVATE_KEY: <from file>
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All 6 secrets created in GitHub
 - [ ] Secrets are masked in logs
 - [ ] Secret names match workflow variable names exactly
@@ -366,7 +366,7 @@ az acr credential show --name acragricpricetrickeravloqy
 # Click "Confirm merge"
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] PR merged to main
 - [ ] CD workflow triggers automatically (check Actions tab)
 - [ ] Branch can be deleted (optional)
@@ -399,7 +399,7 @@ CD Pipeline Job:
 20. Cleanup ✓
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All 20+ steps complete without errors
 - [ ] Each step shows appropriate output
 - [ ] No secrets displayed in logs (shows ***)
@@ -433,7 +433,7 @@ curl http://localhost:3000/api/prices
 exit  # Exit SSH session
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] SSH connection successful through Bastion
 - [ ] `docker ps` shows running container
 - [ ] Application responds to curl
@@ -454,7 +454,7 @@ curl "https://www.duckdns.org/update?domains=agri-price-tracker&token=YOUR_TOKEN
 # Response should be: OK
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] DuckDNS API returns OK
 - [ ] Domain shows "Activated"
 
@@ -469,7 +469,7 @@ nslookup agri-price-tracker.duckdns.org
 # Address: 52.xxx.xxx.xxx
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] DNS resolves to Bastion IP
 - [ ] Works from multiple terminals
 - [ ] Works from different network (phone hotspot, etc.)
@@ -486,7 +486,7 @@ curl http://agri-price-tracker.duckdns.org/
 # http://agri-price-tracker.duckdns.org/
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] Application accessible via domain
 - [ ] HTML response received
 - [ ] API endpoints work
@@ -518,7 +518,7 @@ On GitHub:
 2. Watch CI pipeline run
 3. Review CI output (lint, tests, security scans pass)
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] PR created successfully
 - [ ] CI workflow triggered
 - [ ] All security scans pass
@@ -538,7 +538,7 @@ In GitHub Actions:
 2. Monitor Docker build and push
 3. Monitor Ansible deployment
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] CD workflow triggered when code merged to main
 - [ ] All steps complete without error
 - [ ] Image pushed to ACR
@@ -559,7 +559,7 @@ ssh -i ... azureuser@$APP_VM \
   && grep "See Today's Market Prices"
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] Change is visible in application
 - [ ] Change appeared without manual deployment
 - [ ] Complete Git-to-Production flow verified
@@ -577,7 +577,7 @@ terraform destroy
 # Confirm destruction
 ```
 
-**✅ Acceptance Criteria**:
+**Acceptance Criteria**:
 - [ ] All resources destroyed successfully
 - [ ] No errors during destroy
 - [ ] Azure Portal shows no resources
@@ -594,7 +594,7 @@ In Azure Portal:
 
 ## Final Verification
 
-### ✅ Documentation Complete
+###  Documentation Complete
 
 - [ ] README.md updated with live URL (if deployed)
 - [ ] README.md has architecture diagram
@@ -604,7 +604,7 @@ In Azure Portal:
 - [ ] docs/DUCKDNS.md complete
 - [ ] All instructions are clear and tested
 
-### ✅ Code Quality
+###  Code Quality
 
 - [ ] npm run lint passes (0 errors)
 - [ ] npm test passes (if tests exist)
@@ -612,7 +612,7 @@ In Azure Portal:
 - [ ] terraform fmt -check passes
 - [ ] eslint-config consistent
 
-### ✅ Security
+###  Security
 
 - [ ] No secrets in .gitignore violations
 - [ ] No hardcoded credentials in code
@@ -621,7 +621,7 @@ In Azure Portal:
 - [ ] GitHub secrets properly configured
 - [ ] SSH keys have 0600 permissions
 
-### ✅ Pipelines Working
+###  Pipelines Working
 
 - [ ] CI workflow triggers on PR
 - [ ] CI workflow blocks merge on failures (security scans, lint)
@@ -708,4 +708,4 @@ In Azure Portal:
 
 **This checklist must be completed before final submission.**  
 **Estimated time: 2-3 hours of testing**  
-**Good luck with your deployment! 🚀**
+**Good luck with your deployment!**

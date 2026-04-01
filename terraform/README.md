@@ -164,7 +164,7 @@ vm_size                 = "Standard_B2s_v2"   # VM size (B1s for smaller, B2s fo
 EOF
 ```
 
-**⚠️  Important**: Do NOT commit `terraform.tfvars` to Git if it contains real passwords. Use GitHub Secrets instead (recommended for CI/CD).
+**Important**: Do NOT commit `terraform.tfvars` to Git if it contains real passwords. Use GitHub Secrets instead (recommended for CI/CD).
 
 ### Step 2: Initialize Terraform
 ```bash
@@ -257,7 +257,7 @@ ssh -i ssh-key-agric-price-tracker.pem \
     azureuser@<APP_VM_PRIVATE_IP>
 ```
 
-⚠️ **Security**: This private key grants full access to your VM. Never commit it to Git.
+**Security**: This private key grants full access to your VM. Never commit it to Git.
 
 ## Managing Terraform State
 

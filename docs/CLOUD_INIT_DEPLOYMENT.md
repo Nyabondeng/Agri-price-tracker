@@ -2,7 +2,11 @@
 
 ## Overview
 
-The **Agri Price Tracker** project now uses **Azure cloud-init** for fully automated deployment. This eliminates the need for:
+The **Agri Price Tr
+Your connection is not private
+Attackers might be trying to steal your information from agri-price-tracker.duckdns.org (for example, passwords, messages, or credit cards). Learn more about this warning
+net::ERR_CERT_COMMON_NAME_INVALID
+Turn on enhanced protection to get Chrome's highest level of securityacker** project now uses **Azure cloud-init** for fully automated deployment. This eliminates the need for:
 - ❌ Self-hosted GitHub runners
 - ❌ Manual SSH/Ansible deployments
 - ❌ Complex networking setup
@@ -36,7 +40,7 @@ Cloud-Init Script Runs (on VM boot)
     ├─ Setup daily certificate renewal
     └─ Start application container
     ↓
-✅ Live HTTPS Application (automatic)
+Live HTTPS Application (automatic)
 ```
 
 ## Deployment Timeline
@@ -55,10 +59,10 @@ Cloud-Init Script Runs (on VM boot)
 
 ### Prerequisites
 
-- ✅ GitHub Secrets configured (ACR + Network)
-- ✅ HCP Terraform workspace with variables
-- ✅ DuckDNS account and domain configured
-- ✅ Azure subscription
+- GitHub Secrets configured (ACR + Network)
+- HCP Terraform workspace with variables
+- DuckDNS account and domain configured
+- Azure subscription
 
 ### Step 1: Deploy Infrastructure via HCP Terraform
 
@@ -284,14 +288,14 @@ sudo journalctl -xe
 
 ## Advantages of Cloud-Init Approach
 
-✅ **No Runner Setup** - No self-hosted runner configuration  
-✅ **No SSH Complexity** - No jump hosts or bastion tunneling
-✅ **Fastest Deployment** - Everything happens on VM boot  
-✅ **Simple Updates** - Just push code and Terraform handles it  
-✅ **Repeatable** - Destroy and recreate VMs with same deployment  
-✅ **Logging** - All logs stored in `/var/log/`  
-✅ **Secure** - Credentials handled by Terraform, not hardcoded  
-✅ **Scalable** - Clone VM images for horizontal scaling  
+**No Runner Setup** - No self-hosted runner configuration  
+**No SSH Complexity** - No jump hosts or bastion tunneling
+**Fastest Deployment** - Everything happens on VM boot  
+**Simple Updates** - Just push code and Terraform handles it  
+**Repeatable** - Destroy and recreate VMs with same deployment  
+**Logging** - All logs stored in `/var/log/`  
+**Secure** - Credentials handled by Terraform, not hardcoded  
+**Scalable** - Clone VM images for horizontal scaling  
 
 ## What Happens on Every Push
 
@@ -312,7 +316,7 @@ Terraform triggers cloud-init:
   2. Cloud-init runs (~5 min)
   3. SSL obtained (~3 min)
   ↓
-✅ Application Updated & Live (13-15 min total)
+Application Updated & Live (13-15 min total)
 ```
 
 ## Files Updated
@@ -335,14 +339,14 @@ Cloud-init approach is recommended for its simplicity.
 
 ## Next Steps
 
-1. ✅ Configure HCP Terraform variables
-2. ✅ Run Terraform to create infrastructure
-3. ✅ Push code to trigger GitHub Actions
-4. ✅ Application auto-deploys via cloud-init
-5. ✅ Monitor logs during deployment
-6. ✅ Verify HTTPS certificate installed
+1. Configure HCP Terraform variables
+2. Run Terraform to create infrastructure
+3. Push code to trigger GitHub Actions
+4. Application auto-deploys via cloud-init
+5. Monitor logs during deployment
+6. Verify HTTPS certificate installed
 
-**No manual deployment steps required!** 🚀
+**No manual deployment steps required!**
 
 ---
 

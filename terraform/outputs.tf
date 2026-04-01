@@ -17,3 +17,9 @@ output "database_fqdn" {
   description = "Database connection string"
   value       = azurerm_postgresql_flexible_server.main.fqdn
 }
+
+output "ssh_private_key" {
+  description = "SSH private key for VM access"
+  value       = tls_private_key.vm_key.private_key_pem
+  sensitive   = true
+}

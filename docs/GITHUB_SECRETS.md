@@ -178,17 +178,17 @@ These are pre-configured in HCP Terraform, so they're optional for repository.
 
 ## Summary: Required vs Optional Secrets
 
-### ✅ Required for Image Push (CD Pipeline)
+### Required for Image Push (CD Pipeline)
 - `ACR_LOGIN_SERVER`
 - `ACR_USERNAME`
 - `ACR_PASSWORD`
 
-### ✅ Recommended for VM Deployment (CD Pipeline)
+### Recommended for VM Deployment (CD Pipeline)
 - `BASTION_HOST`
 - `APP_PRIVATE_IP`
 - `SSH_PRIVATE_KEY`
 
-### ⚠️ Optional (Already in HCP Terraform)
+### Optional (Already in HCP Terraform)
 - `ARM_CLIENT_ID`
 - `ARM_CLIENT_SECRET`
 - `ARM_SUBSCRIPTION_ID`
@@ -328,8 +328,8 @@ Secrets are referenced in GitHub Actions workflows using this syntax:
 ```
 
 The secret value is:
-- ✅ Available to the step
-- ✅ Masked in logs (shows ***)
+- Available to the step
+- Masked in logs (shows ***)
 - ❌ Never logged or displayed
 - ❌ Cannot be captured or exported
 

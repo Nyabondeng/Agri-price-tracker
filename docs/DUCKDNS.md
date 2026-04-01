@@ -345,12 +345,12 @@ For production, use HTTPS with Let's Encrypt:
 
 ## Summary
 
-1. ✅ Get Bastion IP from Terraform
-2. ✅ Update DuckDNS with your IP
-3. ✅ Verify DNS resolution
-4. ✅ Wait for global propagation (5-30 min)
-5. ✅ Access your app via domain
-6. ✅ (Optional) Set up automatic IP updates
+1. Get Bastion IP from Terraform
+2. Update DuckDNS with your IP
+3. Verify DNS resolution
+4. Wait for global propagation (5-30 min)
+5. Access your app via domain
+6. (Optional) Set up automatic IP updates
 
 ---
 
