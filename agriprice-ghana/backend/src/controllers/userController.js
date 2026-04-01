@@ -3,7 +3,7 @@ import { User } from "../models/User.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const listUsers = asyncHandler(async (_req, res) => {
-  const users = await User.find().select("fullName email role authProvider createdAt").sort({ createdAt: -1 });
+  const users = await User.find().select("fullName email role authProvider createdAt").sort({ _id: -1 });
   res.status(200).json({ items: users });
 });
 

@@ -23,7 +23,7 @@ export const listSubmissions = asyncHandler(async (req, res) => {
 
   const filter = status === "all" ? {} : { status };
   const items = await PriceSubmission.find(filter)
-    .sort({ createdAt: -1 })
+    .sort({ _id: -1 })
     .populate("submittedBy", "fullName email")
     .populate("reviewedBy", "fullName email");
 

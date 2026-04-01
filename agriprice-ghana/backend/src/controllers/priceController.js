@@ -14,7 +14,7 @@ export const getLatestPrices = asyncHandler(async (req, res) => {
   }
 
   const prices = await PriceEntry.find(filter)
-    .sort({ createdAt: -1 })
+    .sort({ _id: -1 })
     .limit(Number(limit))
     .populate("submittedBy", "fullName email");
 
@@ -36,7 +36,7 @@ export const getPriceHistory = asyncHandler(async (req, res) => {
   since.setDate(since.getDate() - Number(days));
   filter.createdAt = { $gte: since };
 
-  const history = await PriceEntry.find(filter).sort({ createdAt: 1 });
+  const history = await PriceEntry.find(filter).sort({ _id: 1 });
   res.status(200).json({ items: history });
 });
 
@@ -51,7 +51,7 @@ export const compareRegions = asyncHandler(async (req, res) => {
 
   const records = await PriceEntry.aggregate([
     { $match: { crop } },
-    { $sort: { createdAt: -1 } },
+    { $sort: { _id: -1 } },
     {
       $group: {
         _id: "$region",
@@ -75,7 +75,7 @@ export const getPricePrediction = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  const series = await PriceEntry.find({ crop, region }).sort({ createdAt: 1 }).limit(20);
+  const series = await PriceEntry.find({ crop, region }).sort({ _id: 1 }).limit(20);
   const predictedPrice = predictNextValue(series);
 
   if (predictedPrice === null) {
