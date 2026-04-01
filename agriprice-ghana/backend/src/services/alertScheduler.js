@@ -50,7 +50,6 @@ export function startAlertScheduler() {
     try {
       await evaluateAlerts();
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Alert scheduler failed:", error.message);
     }
   });

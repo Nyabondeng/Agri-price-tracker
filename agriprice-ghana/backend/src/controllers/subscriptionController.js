@@ -62,7 +62,6 @@ export const reviewSubmission = asyncHandler(async (req, res) => {
   res.status(200).json({ item: submission });
 });
 import { Subscription } from "../models/Subscription.js";
-import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const createSubscription = asyncHandler(async (req, res) => {
   const { crop, region, thresholdPercent } = req.body;
