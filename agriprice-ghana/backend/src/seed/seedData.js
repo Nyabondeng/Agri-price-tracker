@@ -47,16 +47,13 @@ async function run() {
     }))
   );
 
-  // eslint-disable-next-line no-console
   console.log("Seed complete. Admin: admin@agripricegh.com / Admin123!");
-  // eslint-disable-next-line no-console
   console.log("User: farmer@agripricegh.com / User123!");
 
   process.exit(0);
 }
 
 run().catch((error) => {
-  // eslint-disable-next-line no-console
   console.error(error);
   process.exit(1);
 });

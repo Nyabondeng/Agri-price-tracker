@@ -14,7 +14,7 @@ async function evaluateAlerts() {
       crop: subscription.crop,
       region: subscription.region
     })
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .limit(2)
       .lean();
 
@@ -50,7 +50,6 @@ export function startAlertScheduler() {
     try {
       await evaluateAlerts();
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Alert scheduler failed:", error.message);
     }
   });
