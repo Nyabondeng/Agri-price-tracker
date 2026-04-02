@@ -1,9 +1,0 @@
-{
-  "name": "AgriPrice Ghana",
-  "short_name": "AgriPrice",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#eef5f8",
-  "theme_color": "#4f8a3f",
-  "icons": []
-}
