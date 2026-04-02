@@ -78,6 +78,32 @@ variable "docker_image_url" {
   # This will be provided by GitHub Actions after building and pushing the image
 }
 
+variable "domain_name" {
+  description = "Full DuckDNS domain for the application (e.g. agri-price-tracker.duckdns.org)"
+  type        = string
+  default     = "agri-price-tracker.duckdns.org"
+}
+
+variable "cert_email" {
+  description = "Email address for Let's Encrypt certificate notifications"
+  type        = string
+  default     = "admin@agri-price-tracker.duckdns.org"
+}
+
+variable "jwt_secret" {
+  description = "JWT secret key for signing authentication tokens"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "duckdns_token" {
+  description = "DuckDNS token for automatic DNS updates on VM boot"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

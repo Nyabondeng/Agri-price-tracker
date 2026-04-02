@@ -16,6 +16,9 @@
     # App configuration
     app_host: "0.0.0.0"
     app_server_name: "{{ domain_name }}"
+    jwt_secret: "{{ lookup('env', 'JWT_SECRET') | default('', true) }}"
+    mongodb_container_name: agri-mongodb
+    mongodb_network: agri-network
 
   tasks:
     - name: Update apt cache
@@ -233,6 +236,8 @@
       fail:
         msg: "Final Nginx configuration is invalid: {{ nginx_final_test.stderr }}"
       when: nginx_final_test.rc != 0
+
+    - name: Create keyrings directory for Docker GPG key
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
@@ -272,6 +277,27 @@
         state: directory
         mode: "0755"
 
+    - name: Create Docker network for app and MongoDB
+      community.docker.docker_network:
+        name: "{{ mongodb_network }}"
+        state: present
+
+    - name: Create MongoDB data volume
+      community.docker.docker_volume:
+        name: agri-mongodb-data
+        state: present
+
+    - name: Ensure MongoDB container is running
+      community.docker.docker_container:
+        name: "{{ mongodb_container_name }}"
+        image: mongo:6
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ mongodb_network }}"
+        volumes:
+          - agri-mongodb-data:/data/db
+
     - name: Log in to Azure Container Registry when credentials are provided
       community.docker.docker_login:
         registry_url: "{{ acr_login_server }}"
@@ -294,11 +320,18 @@
         restart_policy: unless-stopped
         recreate: true
         pull: always
+        networks:
+          - name: "{{ mongodb_network }}"
         published_ports:
           - "{{ app_port }}:3000"
         env:
           NODE_ENV: production
           PORT: "3000"
+          MONGODB_URI: "mongodb://{{ mongodb_container_name }}:27017/agriprice_ghana"
+          JWT_SECRET: "{{ jwt_secret }}"
+          JWT_EXPIRES_IN: "7d"
+          CLIENT_URL: "https://{{ domain_name }}"
+          ALERT_PRICE_CHANGE_PERCENT: "10"
 
     - name: "Display deployment summary"
       ansible.builtin.debug:
@@ -336,4 +369,3 @@
       ansible.builtin.service:
         name: nginx
         state: reloaded
-

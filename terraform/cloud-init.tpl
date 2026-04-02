@@ -18,6 +18,9 @@ export DOMAIN_NAME="${domain_name}"
 export CERT_EMAIL="${cert_email}"
 export APP_PORT="3000"
 export NODE_ENV="production"
+export JWT_SECRET="${jwt_secret}"
+export CLIENT_URL="https://${domain_name}"
+export DUCKDNS_TOKEN="${duckdns_token}"
 
 echo "Configuration:"
 echo "  Docker Image: $DOCKER_IMAGE"
@@ -135,10 +138,29 @@ else
 fi
 
 # ============================================================================
-# Phase 7: Pull and Run Docker Container
+# Phase 7: Start MongoDB and Deploy Application Container
 # ============================================================================
 echo ""
-echo "=== Phase 7: Deploy Application Container ==="
+echo "=== Phase 7: Start MongoDB ==="
+docker network create agri-network 2>/dev/null || true
+docker volume create agri-mongodb-data 2>/dev/null || true
+
+docker stop agri-mongodb 2>/dev/null || true
+docker rm agri-mongodb 2>/dev/null || true
+
+docker run -d \
+  --name agri-mongodb \
+  --restart unless-stopped \
+  --network agri-network \
+  -v agri-mongodb-data:/data/db \
+  mongo:6
+
+echo "Waiting for MongoDB to be ready..."
+sleep 5
+echo "✓ MongoDB container started"
+
+echo ""
+echo "=== Phase 7b: Deploy Application Container ==="
 if [ -z "$DOCKER_IMAGE" ] || [ "$DOCKER_IMAGE" = "PLACEHOLDER_DOCKER_IMAGE" ]; then
   echo "⚠ Docker image not specified. Skipping container deployment."
 else
@@ -147,16 +169,22 @@ else
     # Stop and remove old container
     docker stop agric-price-tracker-app 2>/dev/null || true
     docker rm agric-price-tracker-app 2>/dev/null || true
-    
-    # Run new container
+
+    # Run new container with all required environment variables
     docker run -d \
       --name agric-price-tracker-app \
       --restart unless-stopped \
+      --network agri-network \
       -e NODE_ENV=production \
       -e PORT=3000 \
+      -e MONGODB_URI="mongodb://agri-mongodb:27017/agriprice_ghana" \
+      -e JWT_SECRET="$JWT_SECRET" \
+      -e JWT_EXPIRES_IN="7d" \
+      -e CLIENT_URL="$CLIENT_URL" \
+      -e ALERT_PRICE_CHANGE_PERCENT="10" \
       -p 3000:3000 \
       "$DOCKER_IMAGE"
-    
+
     echo "✓ Container deployed and running"
     sleep 3
     docker logs agric-price-tracker-app | head -20
@@ -166,10 +194,30 @@ else
 fi
 
 # ============================================================================
-# Phase 8: Wait for DNS Resolution
+# Phase 8: Update DuckDNS with this VM's Public IP
 # ============================================================================
 echo ""
-echo "=== Phase 8: Wait for DNS Resolution ==="
+echo "=== Phase 8: Update DuckDNS ==="
+if [ -z "$DUCKDNS_TOKEN" ]; then
+  echo "⚠ DUCKDNS_TOKEN not set. Skipping DuckDNS update."
+  echo "  DNS must be updated manually before SSL certificate can be obtained."
+else
+  PUBLIC_IP=$(curl -s https://api.ipify.org)
+  DUCKDNS_DOMAIN=$(echo "$DOMAIN_NAME" | sed 's/\.duckdns\.org//')
+  echo "Updating DuckDNS: $DUCKDNS_DOMAIN → $PUBLIC_IP"
+  RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=$DUCKDNS_DOMAIN&token=$DUCKDNS_TOKEN&ip=$PUBLIC_IP")
+  if [ "$RESPONSE" = "OK" ]; then
+    echo "✓ DuckDNS updated successfully ($DOMAIN_NAME → $PUBLIC_IP)"
+  else
+    echo "⚠ DuckDNS update failed (response: $RESPONSE). SSL certificate may fail."
+  fi
+fi
+
+# ============================================================================
+# Phase 9: Wait for DNS Resolution
+# ============================================================================
+echo ""
+echo "=== Phase 9: Wait for DNS Resolution ==="
 DNS_RESOLVED=false
 for i in {1..60}; do
   if getent hosts "$DOMAIN_NAME" > /dev/null 2>&1; then

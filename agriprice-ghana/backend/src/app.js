@@ -3,6 +3,8 @@ import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware.js";
@@ -45,5 +47,19 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/donations", donationRoutes);
 
-app.use(notFoundHandler);
+// In production, serve the built React frontend as static files
+if (env.nodeEnv === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const publicPath = path.join(__dirname, "..", "public");
+
+  app.use(express.static(publicPath));
+
+  // React Router fallback — serve index.html for all non-API routes
+  app.get("*", (_, res) => {
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+} else {
+  app.use(notFoundHandler);
+}
+
 app.use(errorHandler);

@@ -225,8 +225,10 @@ resource "azurerm_linux_virtual_machine" "app" {
     acr_login_server = azurerm_container_registry.main.login_server
     acr_username     = azurerm_container_registry.main.admin_username
     acr_password     = azurerm_container_registry.main.admin_password
-    domain_name      = "agri-price-tracker.duckdns.org"
-    cert_email       = "admin@agri-price-tracker.duckdns.org"
+    domain_name      = var.domain_name
+    cert_email       = var.cert_email
+    jwt_secret       = var.jwt_secret
+    duckdns_token    = var.duckdns_token
   }))
 }
 
