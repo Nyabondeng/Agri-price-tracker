@@ -17,6 +17,9 @@ import { userRoutes } from "./routes/userRoutes.js";
 
 export const app = express();
 
+// Trust nginx reverse proxy
+app.set("trust proxy", 1);
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
