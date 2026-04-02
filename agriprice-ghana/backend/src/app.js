@@ -55,10 +55,18 @@ if (env.nodeEnv === "production") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const publicPath = path.join(__dirname, "..", "public");
 
-  app.use(express.static(publicPath));
+  // Cache static assets (JS/CSS/images) but never cache index.html
+  app.use(express.static(publicPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    }
+  }));
 
   // React Router fallback — serve index.html for all non-API routes
   app.get("*", (_, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.join(publicPath, "index.html"));
   });
 } else {
