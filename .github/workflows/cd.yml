@@ -178,47 +178,68 @@ jobs:
           echo "Image push skipped because required ACR secrets are missing."
           echo "IMAGE_URL=" >> "$GITHUB_ENV"
 
-      - name: Update infrastructure with Terraform
+      - name: Login to Azure
+        if: env.CAN_PUSH == 'true'
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: true
+
+      - name: Deploy updated container to VM
         if: env.CAN_PUSH == 'true'
         shell: bash
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          VM_NAME: ${{ secrets.VM_NAME }}
+          VM_RESOURCE_GROUP: ${{ secrets.VM_RESOURCE_GROUP }}
+          ACR_REGISTRY: ${{ steps.normalize_acr.outputs.acr_registry }}
+          ACR_USERNAME: ${{ steps.normalize_acr.outputs.acr_username_clean }}
+          ACR_PASSWORD: ${{ steps.normalize_acr.outputs.acr_password_clean }}
         run: |
-          echo "Cloud-init deployment will run automatically when VM boots"
-          echo "Docker image: $IMAGE_URL"
-          echo ""
-          echo "The application will be deployed automatically through:"
-          echo "  1. Infrastructure creation (Terraform)"
-          echo "  2. Cloud-init script (on VM boot)"
-          echo "  3. Nginx reverse proxy configuration"
-          echo "  4. Let's Encrypt SSL certificate provisioning"
-          echo "  5. Auto-renewal cron job setup"
-          echo ""
-          echo "No manual Ansible deployment needed!"
-          echo ""
-          echo "Deployment timeline:"
-          echo "  - VM boots: ~2 minutes"
-          echo "  - Cloud-init runs: ~3-5 minutes"
-          echo "  - SSL certificate: ~2-3 minutes"
-          echo "  - Total: ~7-10 minutes"
-          echo ""
-          echo "Monitor deployment logs on the VM:"
-          echo "  sudo tail -f /var/log/agri-price-tracker-deploy.log"
+          if [ -z "$VM_NAME" ] || [ -z "$VM_RESOURCE_GROUP" ]; then
+            echo "::warning::VM_NAME or VM_RESOURCE_GROUP secret not set. Skipping auto-deployment."
+            echo "Add VM_NAME and VM_RESOURCE_GROUP secrets to enable zero-touch deployment."
+            exit 0
+          fi
 
-      - name: Note about deployment
+          DOMAIN="${DOMAIN_NAME:-agri-price-tracker.duckdns.org}"
+          IMAGE="$ACR_REGISTRY/agri-price-tracker:latest"
+
+          echo "Deploying $IMAGE to $VM_NAME..."
+
+          az vm run-command invoke \
+            --resource-group "$VM_RESOURCE_GROUP" \
+            --name "$VM_NAME" \
+            --command-id RunShellScript \
+            --scripts "
+              set -e
+              echo '$ACR_PASSWORD' | docker login '$ACR_REGISTRY' -u '$ACR_USERNAME' --password-stdin
+              docker pull '$IMAGE'
+              docker stop agric-price-tracker-app 2>/dev/null || true
+              docker rm agric-price-tracker-app 2>/dev/null || true
+              docker run -d \
+                --name agric-price-tracker-app \
+                --restart unless-stopped \
+                --network agri-network \
+                -e NODE_ENV=production \
+                -e PORT=3000 \
+                -e MONGODB_URI=mongodb://agri-mongodb:27017/agriprice_ghana \
+                -e JWT_SECRET='$JWT_SECRET' \
+                -e JWT_EXPIRES_IN=7d \
+                -e CLIENT_URL=https://$DOMAIN \
+                -e ALERT_PRICE_CHANGE_PERCENT=10 \
+                -p 3000:3000 \
+                '$IMAGE'
+              echo 'Deployment complete!'
+            "
+          echo "✓ Container updated on $VM_NAME"
+
+      - name: Deployment summary
         run: |
           echo "=========================================="
           echo "Deployment Status"
           echo "=========================================="
           echo "✓ Docker image built and pushed to ACR"
-          echo "✓ Image available for deployment"
-          echo ""
-          echo "Application deployment happens via:"
-          echo "  • Cloud-init script (automatic on VM boot)"
-          echo "  • No manual SSH/Ansible required"
-          echo ""
-          echo "When VM is deployed, it will automatically:"
-          echo "  1. Install Docker and pull image"
-          echo "  2. Install Nginx reverse proxy"
-          echo "  3. Install Certbot"
-          echo "  4. Request SSL certificate from Let's Encrypt"
-          echo "  5. Configure HTTPS with auto-renewal"
+          echo "✓ Container updated on VM (if Azure secrets configured)"
           echo "=========================================="
