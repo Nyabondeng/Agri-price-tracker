@@ -5,6 +5,3 @@ node_modules/
 dist/
 coverage/
 *.log
-backend/public/
-frontend/dist/
-frontend/node_modules/

@@ -8,12 +8,6 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "ignorePatterns": [
-    "public/",
-    "node_modules/",
-    "dist/",
-    "build/"
-  ],
   "rules": {
     "no-unused-vars": [
       "warn",
