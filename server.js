@@ -23,7 +23,7 @@ function buildHtml(items) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agri Price Tracker Ghana - Deployed</title>
+    <title>Agri Price Tracker Ghana</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 32px; color: #1f2937; }
       h1 { margin-bottom: 6px; }
