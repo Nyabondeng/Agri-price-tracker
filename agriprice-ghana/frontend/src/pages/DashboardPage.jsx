@@ -19,7 +19,7 @@ export default function DashboardPage() {
     en: {
       title: "This is a Real-time Commodity Dashboard",
       subtitle:
-        "Find our prices for maize, rice, cassava, yam, tomatoes, and cocoa across major Ghanaian regions.",
+        "Rview our prices for maize, rice, cassava, yam, tomatoes, and cocoa across major Ghanaian regions.",
       crop: "Crop",
       region: "Region",
       allCrops: "All crops",
